@@ -12,6 +12,7 @@ function compatibleUi() {
     class MockActor {
         add_child() {}
         remove_child() {}
+        transform_stage_point() {}
     }
 
     class MockToggle {
@@ -25,10 +26,23 @@ function compatibleUi() {
         visible = false;
         _primaryMonitorBin = new MockActor();
         _shotButton = new MockToggle();
+        _selectionButton = new MockToggle();
+        _screenButton = new MockToggle();
+        _windowButton = new MockToggle();
+        _screenSelectors = [new MockToggle()];
+        _areaSelector = {
+            connect() {},
+            disconnect() {},
+            getGeometry() {},
+        };
 
         open() {}
         connect() {}
         disconnect() {}
+        add_child() {}
+        insert_child_below() {}
+        remove_child() {}
+        transform_stage_point() {}
     }
 
     return new MockScreenshotUi();
@@ -68,12 +82,28 @@ test('reports every missing contract member instead of failing at first use', ()
     assert.deepEqual(result.issues, [
         'Main.screenshotUI.connect is unavailable',
         'Main.screenshotUI.disconnect is unavailable',
+        'Main.screenshotUI.add_child is unavailable',
+        'Main.screenshotUI.insert_child_below is unavailable',
+        'Main.screenshotUI.remove_child is unavailable',
+        'Main.screenshotUI.transform_stage_point is unavailable',
         'Main.screenshotUI.visible is unavailable',
         'Main.screenshotUI.open is not defined on its direct prototype',
-        'Main.screenshotUI._primaryMonitorBin.add_child is unavailable',
-        'Main.screenshotUI._primaryMonitorBin.remove_child is unavailable',
+        'Main.screenshotUI._primaryMonitorBin is unavailable',
+        'Main.screenshotUI._areaSelector.connect is unavailable',
+        'Main.screenshotUI._areaSelector.disconnect is unavailable',
+        'Main.screenshotUI._areaSelector.getGeometry is unavailable',
         'Main.screenshotUI._shotButton.checked is unavailable',
         'Main.screenshotUI._shotButton.connect is unavailable',
         'Main.screenshotUI._shotButton.disconnect is unavailable',
+        'Main.screenshotUI._selectionButton.checked is unavailable',
+        'Main.screenshotUI._selectionButton.connect is unavailable',
+        'Main.screenshotUI._selectionButton.disconnect is unavailable',
+        'Main.screenshotUI._screenButton.checked is unavailable',
+        'Main.screenshotUI._screenButton.connect is unavailable',
+        'Main.screenshotUI._screenButton.disconnect is unavailable',
+        'Main.screenshotUI._windowButton.checked is unavailable',
+        'Main.screenshotUI._windowButton.connect is unavailable',
+        'Main.screenshotUI._windowButton.disconnect is unavailable',
+        'Main.screenshotUI._screenSelectors is unavailable',
     ]);
 });

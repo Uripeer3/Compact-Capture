@@ -10,15 +10,20 @@ Compact Capture will own only annotation state, rendering and its compact UI.
 
 ## Current status
 
-The project now includes a narrow GNOME 50 adapter and a visible compact
-annotation toolbar. Tool, colour and width selection work and remain stable
-while the extension is enabled. Drawing starts in PR 4, so the toolbar does not
-yet alter capture output and the project is not ready for end-user installation.
+The project now includes a narrow GNOME 50 adapter, a compact annotation
+toolbar and a monitor-aware live drawing overlay. In area mode, annotation
+controls stay hidden until the native selection drag finishes. Freehand,
+rectangle, arrow and highlighter previews, undo and clear now work.
+
+PR 4 is still a preview milestone: annotations are not yet composited into the
+saved screenshot. PR 5 will connect the document to GNOME's native output path,
+so the project is not ready for end-user installation.
 
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.
 
-The toolbar appears only in screenshot mode. GNOME's native area/screen/window,
+The toolbar appears only in supported screenshot modes. Area and screen capture
+have a drawing overlay; window capture stays entirely native for now. GNOME's
 pointer, capture and screen-recording controls remain available and unchanged.
 
 See [ROADMAP.md](ROADMAP.md) for the sequence to a usable 0.1 release and

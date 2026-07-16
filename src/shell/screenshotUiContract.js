@@ -17,7 +17,15 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
     if (!screenshotUi || typeof screenshotUi !== 'object') {
         issues.push('Main.screenshotUI is unavailable');
     } else {
-        for (const method of ['open', 'connect', 'disconnect']) {
+        for (const method of [
+            'open',
+            'connect',
+            'disconnect',
+            'add_child',
+            'insert_child_below',
+            'remove_child',
+            'transform_stage_point',
+        ]) {
             if (typeof screenshotUi[method] !== 'function')
                 issues.push(`Main.screenshotUI.${method} is unavailable`);
         }
@@ -32,25 +40,38 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
             );
         }
 
-        const toolbarHost = screenshotUi._primaryMonitorBin;
-        for (const method of ['add_child', 'remove_child']) {
-            if (typeof toolbarHost?.[method] !== 'function') {
+        if (!screenshotUi._primaryMonitorBin)
+            issues.push('Main.screenshotUI._primaryMonitorBin is unavailable');
+
+        const areaSelector = screenshotUi._areaSelector;
+        for (const method of ['connect', 'disconnect', 'getGeometry']) {
+            if (typeof areaSelector?.[method] !== 'function') {
                 issues.push(
-                    `Main.screenshotUI._primaryMonitorBin.${method} is unavailable`
+                    `Main.screenshotUI._areaSelector.${method} is unavailable`
                 );
             }
         }
 
-        const shotButton = screenshotUi._shotButton;
-        if (typeof shotButton?.checked !== 'boolean')
-            issues.push('Main.screenshotUI._shotButton.checked is unavailable');
-        for (const method of ['connect', 'disconnect']) {
-            if (typeof shotButton?.[method] !== 'function') {
-                issues.push(
-                    `Main.screenshotUI._shotButton.${method} is unavailable`
-                );
+        for (const field of [
+            '_shotButton',
+            '_selectionButton',
+            '_screenButton',
+            '_windowButton',
+        ]) {
+            const button = screenshotUi[field];
+            if (typeof button?.checked !== 'boolean')
+                issues.push(`Main.screenshotUI.${field}.checked is unavailable`);
+            for (const method of ['connect', 'disconnect']) {
+                if (typeof button?.[method] !== 'function') {
+                    issues.push(
+                        `Main.screenshotUI.${field}.${method} is unavailable`
+                    );
+                }
             }
         }
+
+        if (!Array.isArray(screenshotUi._screenSelectors))
+            issues.push('Main.screenshotUI._screenSelectors is unavailable');
     }
 
     return Object.freeze({
