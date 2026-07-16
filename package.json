@@ -1,0 +1,11 @@
+{
+  "name": "compact-capture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "find src tests -name '*.js' -exec node --check {} +",
+    "test": "node --test"
+  }
+}
+

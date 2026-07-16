@@ -1,0 +1,10 @@
+{
+  "name": "Compact Capture",
+  "description": "Adds a compact annotation workflow to GNOME's built-in screenshot interface.",
+  "uuid": "compact-capture@uripeer3.github.io",
+  "url": "https://github.com/Uripeer3/Compact-Capture",
+  "shell-version": [
+    "50"
+  ]
+}
+
