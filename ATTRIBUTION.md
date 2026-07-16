@@ -5,7 +5,8 @@ built-in screenshot interface and KDE Spectacle's compact annotation workflow.
 
 The annotation tool semantics, parts of the rendering approach in
 `src/annotationRenderer.js`, and the interaction pattern behind
-`src/compactToolbar.js` were adapted from:
+`src/compactToolbar.js` were adapted from the project below. The symbolic
+rectangle, arrow and highlighter assets were also adapted from its GPL source:
 
 - **Gradia Capture**, by Alexander Vanhee and contributors
 - Source: <https://github.com/AlexanderVanhee/gradia-capture>

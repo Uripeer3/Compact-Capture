@@ -2,6 +2,7 @@
 // Interaction pattern adapted from Gradia Capture's GPL-3.0 toolbar.
 
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
@@ -20,6 +21,18 @@ function normalizedLineWidth(lineWidth) {
         (LINE_WIDTH_MAX - LINE_WIDTH_MIN);
 }
 
+function createToolIcon(tool, extensionPath) {
+    if (tool.iconFile) {
+        return new St.Icon({
+            gicon: Gio.Icon.new_for_string(
+                `${extensionPath}/${tool.iconFile}`
+            ),
+        });
+    }
+
+    return new St.Icon({icon_name: tool.iconName});
+}
+
 export const CompactToolbar = GObject.registerClass({
     Signals: {
         'tool-changed': {param_types: [GObject.TYPE_STRING]},
@@ -30,9 +43,11 @@ export const CompactToolbar = GObject.registerClass({
     },
 }, class CompactToolbar extends St.BoxLayout {
     _init(params = {}) {
-        const {state, ...actorParams} = params;
+        const {state, extensionPath = '', ...actorParams} = params;
         if (!state)
             throw new TypeError('CompactToolbar requires a ToolbarState');
+        if (!extensionPath)
+            throw new TypeError('CompactToolbar requires an extension path');
 
         super._init({
             style_class: 'screenshot-ui-panel compact-capture-toolbar',
@@ -45,6 +60,7 @@ export const CompactToolbar = GObject.registerClass({
         });
 
         this._state = state;
+        this._extensionPath = extensionPath;
         this._toolButtons = new Map();
         this._colorButtons = new Map();
         this._tooltips = [];
@@ -89,7 +105,7 @@ export const CompactToolbar = GObject.registerClass({
     _buildToolButtons() {
         for (const tool of TOOL_DEFINITIONS) {
             const button = new St.Button({
-                child: new St.Icon({icon_name: tool.iconName}),
+                child: createToolIcon(tool, this._extensionPath),
                 style_class: 'compact-capture-icon-button',
                 accessible_name: tool.label,
                 toggle_mode: true,

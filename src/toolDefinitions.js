@@ -17,19 +17,19 @@ export const TOOL_DEFINITIONS = Object.freeze([
     Object.freeze({
         id: Tool.RECTANGLE,
         label: 'Rectangle',
-        iconName: 'selection-mode-symbolic',
+        iconFile: 'rectangle-symbolic.svg',
         defaultWidth: 3,
     }),
     Object.freeze({
         id: Tool.ARROW,
         label: 'Arrow',
-        iconName: 'go-up-symbolic',
+        iconFile: 'arrow-symbolic.svg',
         defaultWidth: 3,
     }),
     Object.freeze({
         id: Tool.HIGHLIGHTER,
         label: 'Highlighter',
-        iconName: 'format-text-underline-symbolic',
+        iconFile: 'highlighter-symbolic.svg',
         defaultWidth: 12,
     }),
 ]);
@@ -55,4 +55,3 @@ export function isSupportedTool(tool) {
 export function isSupportedColor(color) {
     return TOOL_COLORS.some(candidate => candidate.value === color);
 }
-

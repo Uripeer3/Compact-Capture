@@ -48,7 +48,10 @@ export default class CompactCaptureExtension extends Extension {
         if (this._toolbar)
             return;
 
-        const toolbar = new CompactToolbar({state: this._toolbarState});
+        const toolbar = new CompactToolbar({
+            state: this._toolbarState,
+            extensionPath: this.path,
+        });
         toolbar.connect('undo', () => {
             this._document.undo();
             this._syncToolbarActions();
