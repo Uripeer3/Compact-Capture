@@ -18,7 +18,7 @@ Status: merged.
 
 ## PR 2 — Narrow GNOME Shell adapter
 
-Status: implemented in this pull request.
+Status: merged.
 
 - Add one version-gated module as the only owner of private ScreenshotUI access.
 - Observe screenshot open/close lifecycle without changing capture behaviour.
@@ -28,6 +28,8 @@ Status: implemented in this pull request.
 
 ## PR 3 — Compact, accessible toolbar
 
+Status: implemented in this pull request.
+
 - Add the Spectacle-inspired compact tool strip.
 - Support freehand, rectangle, arrow and highlighter selection.
 - Add accessible names, keyboard focus, visible state and theme-derived colours.
@@ -36,6 +38,9 @@ Status: implemented in this pull request.
 ## PR 4 — Monitor-aware annotation overlay
 
 - Add drawing canvases without replacing GNOME's selection UI.
+- Hide annotation controls while an area is being created or adjusted.
+- After selection, prefer the toolbar above or below the selected area and
+  fall back to the top of its monitor when neither position fits.
 - Define stage-logical, monitor-local and output-pixel coordinate conversions.
 - Support mixed-scale and secondary-monitor placement.
 - Add point sampling and bounded repaint work for older hardware.

@@ -10,12 +10,16 @@ Compact Capture will own only annotation state, rendering and its compact UI.
 
 ## Current status
 
-The project now includes a narrow GNOME 50 adapter that observes the native
-screenshot interface opening and closing. It does not yet add visible controls
-or alter capture output and is not ready for end-user installation.
+The project now includes a narrow GNOME 50 adapter and a visible compact
+annotation toolbar. Tool, colour and width selection work and remain stable
+while the extension is enabled. Drawing starts in PR 4, so the toolbar does not
+yet alter capture output and the project is not ready for end-user installation.
 
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.
+
+The toolbar appears only in screenshot mode. GNOME's native area/screen/window,
+pointer, capture and screen-recording controls remain available and unchanged.
 
 See [ROADMAP.md](ROADMAP.md) for the sequence to a usable 0.1 release and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the ownership boundary.

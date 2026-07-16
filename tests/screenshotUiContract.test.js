@@ -6,11 +6,25 @@ import test from 'node:test';
 import {
     inspectScreenshotUi,
     SUPPORTED_SHELL_MAJORS,
-} from '../src/screenshotUiContract.js';
+} from '../src/shell/screenshotUiContract.js';
 
 function compatibleUi() {
+    class MockActor {
+        add_child() {}
+        remove_child() {}
+    }
+
+    class MockToggle {
+        checked = true;
+
+        connect() {}
+        disconnect() {}
+    }
+
     class MockScreenshotUi {
         visible = false;
+        _primaryMonitorBin = new MockActor();
+        _shotButton = new MockToggle();
 
         open() {}
         connect() {}
@@ -56,5 +70,10 @@ test('reports every missing contract member instead of failing at first use', ()
         'Main.screenshotUI.disconnect is unavailable',
         'Main.screenshotUI.visible is unavailable',
         'Main.screenshotUI.open is not defined on its direct prototype',
+        'Main.screenshotUI._primaryMonitorBin.add_child is unavailable',
+        'Main.screenshotUI._primaryMonitorBin.remove_child is unavailable',
+        'Main.screenshotUI._shotButton.checked is unavailable',
+        'Main.screenshotUI._shotButton.connect is unavailable',
+        'Main.screenshotUI._shotButton.disconnect is unavailable',
     ]);
 });

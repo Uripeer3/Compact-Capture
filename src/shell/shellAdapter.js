@@ -11,19 +11,26 @@ export class ScreenshotUiAdapter {
     #closedSignalId = 0;
     #compatibility = null;
     #injectionManager = null;
+    #modeSignalId = 0;
     #onClosed;
+    #onModeChanged;
     #onOpened;
     #screenshotUi;
     #screenshotUiPrototype;
     #sessionOpen = false;
 
-    constructor({onOpened = null, onClosed = null} = {}) {
+    constructor({
+        onOpened = null,
+        onClosed = null,
+        onModeChanged = null,
+    } = {}) {
         this.#screenshotUi = Main.screenshotUI;
         this.#screenshotUiPrototype = this.#screenshotUi
             ? Object.getPrototypeOf(this.#screenshotUi)
             : null;
         this.#onOpened = onOpened;
         this.#onClosed = onClosed;
+        this.#onModeChanged = onModeChanged;
     }
 
     get active() {
@@ -53,6 +60,7 @@ export class ScreenshotUiAdapter {
 
         const injectionManager = new InjectionManager();
         let closedSignalId = 0;
+        let modeSignalId = 0;
 
         try {
             const adapter = this;
@@ -70,13 +78,28 @@ export class ScreenshotUiAdapter {
                 'closed',
                 () => this.#handleClosed()
             );
+            modeSignalId = this.#screenshotUi._shotButton.connect(
+                'notify::checked',
+                () => this.#handleModeChanged()
+            );
 
             this.#injectionManager = injectionManager;
             this.#closedSignalId = closedSignalId;
+            this.#modeSignalId = modeSignalId;
             this.#sessionOpen = false;
             this.#active = true;
             return true;
         } catch (error) {
+            if (modeSignalId) {
+                try {
+                    this.#screenshotUi._shotButton.disconnect(modeSignalId);
+                } catch (disconnectError) {
+                    console.error(
+                        'Compact Capture could not roll back its mode signal',
+                        disconnectError
+                    );
+                }
+            }
             if (closedSignalId) {
                 try {
                     this.#screenshotUi.disconnect(closedSignalId);
@@ -98,6 +121,18 @@ export class ScreenshotUiAdapter {
     }
 
     disable() {
+        if (this.#modeSignalId) {
+            try {
+                this.#screenshotUi._shotButton.disconnect(this.#modeSignalId);
+            } catch (error) {
+                console.error(
+                    'Compact Capture could not disconnect its mode signal',
+                    error
+                );
+            }
+            this.#modeSignalId = 0;
+        }
+
         if (this.#closedSignalId) {
             try {
                 this.#screenshotUi.disconnect(this.#closedSignalId);
@@ -116,12 +151,70 @@ export class ScreenshotUiAdapter {
         this.#active = false;
     }
 
+    mountToolbar(toolbar) {
+        if (!this.#active || !this.#sessionOpen || !toolbar)
+            return false;
+
+        const toolbarHost = this.#screenshotUi._primaryMonitorBin;
+        const actors = [toolbar, ...(toolbar.auxiliaryActors ?? [])];
+        const mountedActors = [];
+        try {
+            if (toolbar.get_parent?.() === toolbarHost) {
+                return actors.every(
+                    actor => actor.get_parent?.() === toolbarHost
+                );
+            }
+            if (toolbar.get_parent?.())
+                return false;
+
+            for (const actor of actors) {
+                if (actor.get_parent?.())
+                    throw new Error('Toolbar actor already has a parent');
+                toolbarHost.add_child(actor);
+                mountedActors.push(actor);
+            }
+            if (!actors.every(actor => actor.get_parent?.() === toolbarHost))
+                throw new Error('Toolbar actor was not mounted');
+            return true;
+        } catch (error) {
+            for (const actor of mountedActors.reverse()) {
+                if (actor.get_parent?.() === toolbarHost)
+                    toolbarHost.remove_child(actor);
+            }
+            console.error('Compact Capture could not mount its toolbar', error);
+            return false;
+        }
+    }
+
+    unmountToolbar(toolbar) {
+        if (!toolbar)
+            return;
+
+        const toolbarHost = this.#screenshotUi?._primaryMonitorBin;
+        const actors = [toolbar, ...(toolbar.auxiliaryActors ?? [])];
+        for (const actor of actors.reverse()) {
+            try {
+                if (actor.get_parent?.() === toolbarHost)
+                    toolbarHost.remove_child(actor);
+            } catch (error) {
+                console.error(
+                    'Compact Capture could not unmount a toolbar actor',
+                    error
+                );
+            }
+        }
+    }
+
     #handleOpenCompleted() {
         if (!this.#active || this.#sessionOpen || !this.#screenshotUi.visible)
             return;
 
         this.#sessionOpen = true;
-        this.#invokeSafely(this.#onOpened, 'opened');
+        this.#invokeSafely(
+            this.#onOpened,
+            'opened',
+            this.#currentSession()
+        );
     }
 
     #handleClosed() {
@@ -132,12 +225,29 @@ export class ScreenshotUiAdapter {
         this.#invokeSafely(this.#onClosed, 'closed');
     }
 
-    #invokeSafely(callback, eventName) {
+    #handleModeChanged() {
+        if (!this.#active || !this.#sessionOpen || !this.#screenshotUi.visible)
+            return;
+
+        this.#invokeSafely(
+            this.#onModeChanged,
+            'mode change',
+            this.#currentSession()
+        );
+    }
+
+    #currentSession() {
+        return Object.freeze({
+            isScreenshot: this.#screenshotUi._shotButton.checked,
+        });
+    }
+
+    #invokeSafely(callback, eventName, ...args) {
         if (typeof callback !== 'function')
             return;
 
         try {
-            callback();
+            callback(...args);
         } catch (error) {
             console.error(
                 `Compact Capture failed while handling ScreenshotUI ${eventName}`,

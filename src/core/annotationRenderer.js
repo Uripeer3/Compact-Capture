@@ -89,4 +89,3 @@ export function renderAnnotations(cr, strokes) {
         DRAWERS.get(stroke.tool)?.(cr, stroke);
     }
 }
-

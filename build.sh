@@ -15,6 +15,19 @@ mkdir -p "${out_dir}"
 cp -a "${root_dir}/src/." "${staging_dir}/"
 cp "${root_dir}/LICENSE" "${root_dir}/ATTRIBUTION.md" "${staging_dir}/"
 
-gnome-extensions pack "${staging_dir}" \
+extra_sources=()
+for source in "${staging_dir}"/*; do
+    filename="${source##*/}"
+    case "${filename}" in
+        extension.js|metadata.json|prefs.js|stylesheet*.css)
+            continue
+            ;;
+    esac
+    extra_sources+=("--extra-source=${filename}")
+done
+
+gnome-extensions pack \
     --force \
-    --out-dir="${out_dir}"
+    --out-dir="${out_dir}" \
+    "${extra_sources[@]}" \
+    "${staging_dir}"

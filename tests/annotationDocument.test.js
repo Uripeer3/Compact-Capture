@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {AnnotationDocument} from '../src/annotationDocument.js';
-import {Tool} from '../src/toolDefinitions.js';
+import {AnnotationDocument} from '../src/core/annotationDocument.js';
+import {Tool} from '../src/core/toolDefinitions.js';
 
 const validStroke = {
     tool: Tool.FREEHAND,
@@ -73,4 +73,3 @@ test('rejects invalid tool, style and coordinate input', () => {
     assert.throws(() => document.beginStroke({...validStroke, width: 0}));
     assert.throws(() => document.beginStroke({...validStroke, point: {x: NaN, y: 1}}));
 });
-

@@ -1,0 +1,72 @@
+.compact-capture-toolbar {
+    spacing: 6px;
+    padding: 6px;
+    margin: 12px 12px 0;
+    margin-bottom: 0;
+    border-radius: 999px;
+}
+
+.compact-capture-icon-button {
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 999px;
+    background-color: transparent;
+}
+
+.compact-capture-icon-button StIcon {
+    icon-size: 16px;
+}
+
+.compact-capture-icon-button:hover,
+.compact-capture-icon-button:focus {
+    background-color: st-transparentize(-st-accent-fg-color, 0.82);
+}
+
+.compact-capture-icon-button:active {
+    background-color: st-transparentize(-st-accent-fg-color, 0.65);
+}
+
+.compact-capture-icon-button:checked {
+    color: -st-accent-fg-color;
+    background-color: -st-accent-color;
+}
+
+.compact-capture-icon-button:insensitive {
+    color: st-transparentize(-st-accent-fg-color, 0.55);
+}
+
+.compact-capture-color-button {
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-color: transparent;
+}
+
+.compact-capture-color-button:hover,
+.compact-capture-color-button:focus {
+    background-color: st-transparentize(-st-accent-fg-color, 0.82);
+}
+
+.compact-capture-color-button:checked {
+    border-color: -st-accent-color;
+}
+
+.compact-capture-color-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px st-transparentize(-st-accent-fg-color, 0.55);
+}
+
+.compact-capture-line-width {
+    width: 72px;
+}
+
+.compact-capture-separator {
+    width: 1px;
+    margin: 4px 3px;
+    background-color: st-transparentize(-st-accent-fg-color, 0.7);
+}
