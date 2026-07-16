@@ -10,9 +10,12 @@ Compact Capture will own only annotation state, rendering and its compact UI.
 
 ## Current status
 
-This first pull request establishes the licensed project foundation and a
-tested, Shell-independent annotation model. It does not yet modify the
-screenshot interface and is not ready for end-user installation.
+The project now includes a narrow GNOME 50 adapter that observes the native
+screenshot interface opening and closing. It does not yet add visible controls
+or alter capture output and is not ready for end-user installation.
+
+If the expected GNOME interface is unavailable, the adapter stays disabled and
+GNOME's original screenshot behaviour continues unchanged.
 
 See [ROADMAP.md](ROADMAP.md) for the sequence to a usable 0.1 release and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the ownership boundary.
@@ -38,4 +41,3 @@ Once the GNOME adapter lands, building the extension will additionally require
 Compact Capture is distributed under GPL-3.0-only. The initial annotation-tool
 behaviour is adapted from the GPL-3.0 Gradia Capture project. See
 [ATTRIBUTION.md](ATTRIBUTION.md) for detailed provenance.
-

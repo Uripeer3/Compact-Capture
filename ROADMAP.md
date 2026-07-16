@@ -6,6 +6,8 @@ that may later be proposed directly to GNOME Shell.
 
 ## PR 1 — Licensed foundation and annotation core
 
+Status: merged.
+
 - Establish the GPL-3.0-only project and attribution.
 - Add a unique extension identity for Compact Capture.
 - Add the Shell-independent annotation document and four initial tools.
@@ -15,6 +17,8 @@ that may later be proposed directly to GNOME Shell.
   unlicensed selection-clearing code.
 
 ## PR 2 — Narrow GNOME Shell adapter
+
+Status: implemented in this pull request.
 
 - Add one version-gated module as the only owner of private ScreenshotUI access.
 - Observe screenshot open/close lifecycle without changing capture behaviour.
@@ -73,4 +77,3 @@ After the extension validates the workflow, upstream work should be a new GNOME
 Shell patch series. The annotation model, rendering rules, interaction design
 and test cases are candidates to port. The private-field adapter, monkey patches
 and extension lifecycle code are prototypes and should not be upstreamed.
-
