@@ -31,6 +31,26 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
                 'Main.screenshotUI.open is not defined on its direct prototype'
             );
         }
+
+        const toolbarHost = screenshotUi._primaryMonitorBin;
+        for (const method of ['add_child', 'remove_child']) {
+            if (typeof toolbarHost?.[method] !== 'function') {
+                issues.push(
+                    `Main.screenshotUI._primaryMonitorBin.${method} is unavailable`
+                );
+            }
+        }
+
+        const shotButton = screenshotUi._shotButton;
+        if (typeof shotButton?.checked !== 'boolean')
+            issues.push('Main.screenshotUI._shotButton.checked is unavailable');
+        for (const method of ['connect', 'disconnect']) {
+            if (typeof shotButton?.[method] !== 'function') {
+                issues.push(
+                    `Main.screenshotUI._shotButton.${method} is unavailable`
+                );
+            }
+        }
     }
 
     return Object.freeze({

@@ -39,12 +39,21 @@ screenshot behaviour must continue unchanged.
 
 ## Adapter contract
 
-`shellAdapter.js` is the only module allowed to import `Main.screenshotUI` or
-intercept one of its methods. It currently wraps only `open()` on ScreenshotUI's
-direct prototype and observes the native `closed` signal. Patching the prototype
-allows `InjectionManager` to restore the exact original ownership and method.
-The wrapper awaits and returns the original result; it does not catch, translate
-or replace native capture errors.
+`shellAdapter.js` is the only module allowed to import `Main.screenshotUI`, read
+one of its private fields or intercept one of its methods. It wraps only `open()`
+on ScreenshotUI's direct prototype and observes the native `closed` and
+screenshot/recording mode signals. Patching the prototype allows
+`InjectionManager` to restore the exact original ownership and method. The
+wrapper awaits and returns the original result; it does not catch, translate or
+replace native capture errors.
+
+The adapter translates private Shell details into two narrow operations:
+
+- a high-level `isScreenshot` session flag;
+- mounting or unmounting one actor in the primary monitor bin.
+
+The toolbar and extension controller never receive the ScreenshotUI object,
+capture buttons or monitor bin themselves.
 
 The adapter is enabled only for an explicitly supported GNOME major version and
 after its required methods have been inspected. Installation is transactional:
@@ -53,6 +62,19 @@ rolled back. Disabling disconnects the signal and clears `InjectionManager`.
 
 Callbacks from Compact Capture are isolated from GNOME's open/close path so an
 annotation-side exception cannot prevent the native screenshot UI from working.
+
+## Toolbar boundary
+
+`compactToolbar.js` ports Gradia Capture's toolbar interaction pattern without
+its settings, drawing-canvas or controller dependencies. It owns only Shell
+widgets and emits semantic tool/style/action signals. `toolbarState.js` stores
+the selected tool, palette colour and line width independently of Shell so the
+state is unit-testable and survives switching temporarily into recording mode.
+
+Undo and clear are present but insensitive until PR 4 adds annotations. The
+toolbar is destroyed when ScreenshotUI closes and recreated for the next native
+screenshot session; all child widgets and their signal connections therefore
+share one deterministic lifetime.
 
 ## Deliberate exclusions
 

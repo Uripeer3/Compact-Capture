@@ -18,7 +18,7 @@ Status: merged.
 
 ## PR 2 — Narrow GNOME Shell adapter
 
-Status: implemented in this pull request.
+Status: merged.
 
 - Add one version-gated module as the only owner of private ScreenshotUI access.
 - Observe screenshot open/close lifecycle without changing capture behaviour.
@@ -27,6 +27,8 @@ Status: implemented in this pull request.
 - Pass native capture through unchanged when Compact Capture is inactive.
 
 ## PR 3 — Compact, accessible toolbar
+
+Status: implemented in this pull request.
 
 - Add the Spectacle-inspired compact tool strip.
 - Support freehand, rectangle, arrow and highlighter selection.

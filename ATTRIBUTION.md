@@ -3,8 +3,9 @@
 Compact Capture is an independently structured project inspired by GNOME's
 built-in screenshot interface and KDE Spectacle's compact annotation workflow.
 
-The annotation tool semantics and parts of the rendering approach in
-`src/annotationRenderer.js` were adapted from:
+The annotation tool semantics, parts of the rendering approach in
+`src/annotationRenderer.js`, and the interaction pattern behind
+`src/compactToolbar.js` were adapted from:
 
 - **Gradia Capture**, by Alexander Vanhee and contributors
 - Source: <https://github.com/AlexanderVanhee/gradia-capture>
@@ -20,4 +21,3 @@ upstream licensing was not established at the time this project was created.
 
 GNOME and KDE names are used only to describe compatibility and design
 inspiration; neither project endorses Compact Capture.
-
