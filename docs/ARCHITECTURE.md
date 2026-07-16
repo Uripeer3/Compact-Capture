@@ -76,6 +76,12 @@ toolbar is destroyed when ScreenshotUI closes and recreated for the next native
 screenshot session; all child widgets and their signal connections therefore
 share one deterministic lifetime.
 
+PR 3 anchors the toolbar to the top of the primary monitor so it cannot cover
+the centre of GNOME's initial area selection. PR 4 will make placement
+selection-aware: hide controls during an area drag, prefer the space above or
+below the completed selection, and use the top of the selected monitor as the
+fallback.
+
 ## Deliberate exclusions
 
 Version 0.1 will not provide alternate image formats, Save As, custom storage,

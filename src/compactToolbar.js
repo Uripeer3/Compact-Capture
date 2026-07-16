@@ -38,6 +38,7 @@ export const CompactToolbar = GObject.registerClass({
             accessible_name: 'Annotation tools',
             x_align: Clutter.ActorAlign.CENTER,
             y_align: Clutter.ActorAlign.START,
+            y_expand: true,
             reactive: true,
             ...actorParams,
         });
