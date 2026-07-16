@@ -15,6 +15,15 @@ The annotation tool semantics, parts of the rendering approach in
 The repository therefore uses the compatible GPL-3.0-only licence and retains
 this attribution.
 
+The delayed hover lifecycle and positioning approach in
+`src/compactTooltip.js` was adapted from:
+
+- **GNOME Shell**, by the GNOME project contributors
+- Source: <https://gitlab.gnome.org/GNOME/gnome-shell>
+- Reviewed source file: `js/ui/screenshot.js`
+- Reviewed source commit: `a9523055bade7e7bf551daedbf8df2701baf77ca`
+- Licence: GNU General Public License version 2 or later
+
 No code was copied from `abdallah-alkanani/no-screenshot-box`. In particular,
 Gradia Capture's `selectionClearer.js` was intentionally excluded because its
 upstream licensing was not established at the time this project was created.

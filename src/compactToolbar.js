@@ -7,6 +7,7 @@ import St from 'gi://St';
 
 import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
 
+import {CompactTooltip} from './compactTooltip.js';
 import {
     LINE_WIDTH_MAX,
     LINE_WIDTH_MIN,
@@ -46,6 +47,7 @@ export const CompactToolbar = GObject.registerClass({
         this._state = state;
         this._toolButtons = new Map();
         this._colorButtons = new Map();
+        this._tooltips = [];
 
         this._buildToolButtons();
         this._addSeparator();
@@ -58,6 +60,7 @@ export const CompactToolbar = GObject.registerClass({
         this._syncToolButtons();
         this._syncColorButtons();
         this.setActionSensitivity({canUndo: false, canClear: false});
+        this.connect('destroy', () => this._destroyTooltips());
     }
 
     get selectedTool() {
@@ -70,6 +73,10 @@ export const CompactToolbar = GObject.registerClass({
 
     get lineWidth() {
         return this._state.lineWidth;
+    }
+
+    get auxiliaryActors() {
+        return [...this._tooltips];
     }
 
     setActionSensitivity({canUndo, canClear}) {
@@ -92,6 +99,7 @@ export const CompactToolbar = GObject.registerClass({
             button.connect('clicked', () => this._selectTool(tool.id));
             this.add_child(button);
             this._toolButtons.set(tool.id, button);
+            this._attachTooltip(button, tool.label);
         }
     }
 
@@ -112,6 +120,7 @@ export const CompactToolbar = GObject.registerClass({
             button.connect('clicked', () => this._selectColor(color.value));
             this.add_child(button);
             this._colorButtons.set(color.value, button);
+            this._attachTooltip(button, `${color.name} color`);
         }
     }
 
@@ -135,6 +144,7 @@ export const CompactToolbar = GObject.registerClass({
             this.emit('line-width-changed', lineWidth);
         });
         this.add_child(this._lineWidthSlider);
+        this._attachTooltip(this._lineWidthSlider, 'Line width');
     }
 
     _buildActionButtons() {
@@ -160,7 +170,19 @@ export const CompactToolbar = GObject.registerClass({
         });
         button.connect('clicked', callback);
         this.add_child(button);
+        this._attachTooltip(button, accessibleName);
         return button;
+    }
+
+    _attachTooltip(widget, text) {
+        this._tooltips.push(new CompactTooltip(widget, text));
+    }
+
+    _destroyTooltips() {
+        for (const tooltip of this._tooltips.splice(0)) {
+            tooltip.close();
+            tooltip.destroy();
+        }
     }
 
     _addSeparator() {

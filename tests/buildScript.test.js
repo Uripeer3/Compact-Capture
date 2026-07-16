@@ -52,6 +52,7 @@ printf '%s\\n' "$@" > "$CAPTURED_ARGUMENTS"
             'annotationDocument.js',
             'annotationRenderer.js',
             'compactToolbar.js',
+            'compactTooltip.js',
             'screenshotUiContract.js',
             'shellAdapter.js',
             'toolDefinitions.js',

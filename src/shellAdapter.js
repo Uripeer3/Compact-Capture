@@ -156,15 +156,31 @@ export class ScreenshotUiAdapter {
             return false;
 
         const toolbarHost = this.#screenshotUi._primaryMonitorBin;
+        const actors = [toolbar, ...(toolbar.auxiliaryActors ?? [])];
+        const mountedActors = [];
         try {
-            if (toolbar.get_parent?.() === toolbarHost)
-                return true;
+            if (toolbar.get_parent?.() === toolbarHost) {
+                return actors.every(
+                    actor => actor.get_parent?.() === toolbarHost
+                );
+            }
             if (toolbar.get_parent?.())
                 return false;
 
-            toolbarHost.add_child(toolbar);
-            return toolbar.get_parent?.() === toolbarHost;
+            for (const actor of actors) {
+                if (actor.get_parent?.())
+                    throw new Error('Toolbar actor already has a parent');
+                toolbarHost.add_child(actor);
+                mountedActors.push(actor);
+            }
+            if (!actors.every(actor => actor.get_parent?.() === toolbarHost))
+                throw new Error('Toolbar actor was not mounted');
+            return true;
         } catch (error) {
+            for (const actor of mountedActors.reverse()) {
+                if (actor.get_parent?.() === toolbarHost)
+                    toolbarHost.remove_child(actor);
+            }
             console.error('Compact Capture could not mount its toolbar', error);
             return false;
         }
@@ -175,11 +191,17 @@ export class ScreenshotUiAdapter {
             return;
 
         const toolbarHost = this.#screenshotUi?._primaryMonitorBin;
-        try {
-            if (toolbar.get_parent?.() === toolbarHost)
-                toolbarHost.remove_child(toolbar);
-        } catch (error) {
-            console.error('Compact Capture could not unmount its toolbar', error);
+        const actors = [toolbar, ...(toolbar.auxiliaryActors ?? [])];
+        for (const actor of actors.reverse()) {
+            try {
+                if (actor.get_parent?.() === toolbarHost)
+                    toolbarHost.remove_child(actor);
+            } catch (error) {
+                console.error(
+                    'Compact Capture could not unmount a toolbar actor',
+                    error
+                );
+            }
         }
     }
 

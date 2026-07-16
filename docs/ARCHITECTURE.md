@@ -82,6 +82,11 @@ selection-aware: hide controls during an area drag, prefer the space above or
 below the completed selection, and use the top of the selected monitor as the
 fallback.
 
+Every compact control retains an accessible name and has a delayed hover hint.
+Tooltip actors are mounted beside the toolbar so they can use monitor-local
+coordinates without taking ownership of ScreenshotUI. They are cancelled and
+destroyed with the toolbar, including when a hint is still waiting to open.
+
 ## Deliberate exclusions
 
 Version 0.1 will not provide alternate image formats, Save As, custom storage,
