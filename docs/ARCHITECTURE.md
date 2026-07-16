@@ -28,20 +28,25 @@ Compact Capture owns:
 ## Planned modules
 
 - `extension.js`: small lifecycle coordinator.
-- `shellAdapter.js`: all GNOME private API access and compatibility checks.
-- `annotationDocument.js`: pure, testable state model.
-- `annotationRenderer.js`: Cairo rendering without storage side effects.
-- `annotationOverlay.js`: monitor-aware pointer and keyboard interaction.
-- `compactToolbar.js`: accessible Shell UI.
+- `shell/shellAdapter.js`: private GNOME access and compatibility checks.
+- `core/annotationDocument.js`: pure, testable state model.
+- `core/annotationRenderer.js`: Cairo rendering without storage side effects.
+- `ui/annotationOverlay.js`: monitor-aware pointer and keyboard interaction.
+- `ui/compactToolbar.js`: accessible Shell UI.
+
+GNOME-required entry files remain at the source root. Shell-independent state
+and rendering live in `core/`, private integration stays isolated in `shell/`,
+Shell actors live in `ui/`, and bundled symbolic artwork lives in `icons/`.
 
 The adapter must fail open: when compatibility checks fail, GNOME's original
 screenshot behaviour must continue unchanged.
 
 ## Adapter contract
 
-`shellAdapter.js` is the only module allowed to import `Main.screenshotUI`, read
-one of its private fields or intercept one of its methods. It wraps only `open()`
-on ScreenshotUI's direct prototype and observes the native `closed` and
+`shell/shellAdapter.js` is the only module allowed to import
+`Main.screenshotUI`, read one of its private fields or intercept one of its
+methods. It wraps only `open()` on ScreenshotUI's direct prototype and observes
+the native `closed` and
 screenshot/recording mode signals. Patching the prototype allows
 `InjectionManager` to restore the exact original ownership and method. The
 wrapper awaits and returns the original result; it does not catch, translate or
@@ -65,11 +70,12 @@ annotation-side exception cannot prevent the native screenshot UI from working.
 
 ## Toolbar boundary
 
-`compactToolbar.js` ports Gradia Capture's toolbar interaction pattern without
-its settings, drawing-canvas or controller dependencies. It owns only Shell
-widgets and emits semantic tool/style/action signals. `toolbarState.js` stores
-the selected tool, palette colour and line width independently of Shell so the
-state is unit-testable and survives switching temporarily into recording mode.
+`ui/compactToolbar.js` ports Gradia Capture's toolbar interaction pattern
+without its settings, drawing-canvas or controller dependencies. It owns only
+Shell widgets and emits semantic tool/style/action signals.
+`core/toolbarState.js` stores the selected tool, palette colour and line width
+independently of Shell so the state is unit-testable and survives switching
+temporarily into recording mode.
 
 Undo and clear are present but insensitive until PR 4 adds annotations. The
 toolbar is destroyed when ScreenshotUI closes and recreated for the next native

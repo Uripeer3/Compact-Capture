@@ -96,4 +96,3 @@ export class AnnotationDocument {
         return strokes;
     }
 }
-

@@ -6,7 +6,7 @@ import test from 'node:test';
 import {
     inspectScreenshotUi,
     SUPPORTED_SHELL_MAJORS,
-} from '../src/screenshotUiContract.js';
+} from '../src/shell/screenshotUiContract.js';
 
 function compatibleUi() {
     class MockActor {

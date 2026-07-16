@@ -17,7 +17,7 @@ import test from 'node:test';
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(import.meta.dirname, '..');
 
-test('build passes every imported module to the GNOME packer', async () => {
+test('build passes every source directory to the GNOME packer', async () => {
     const temporaryDirectory = await mkdtemp(
         path.join(tmpdir(), 'compact-capture-build-')
     );
@@ -49,17 +49,10 @@ printf '%s\\n' "$@" > "$CAPTURED_ARGUMENTS"
         assert.deepEqual(extraSources.sort(), [
             'ATTRIBUTION.md',
             'LICENSE',
-            'annotationDocument.js',
-            'annotationRenderer.js',
-            'arrow-symbolic.svg',
-            'compactToolbar.js',
-            'compactTooltip.js',
-            'highlighter-symbolic.svg',
-            'rectangle-symbolic.svg',
-            'screenshotUiContract.js',
-            'shellAdapter.js',
-            'toolDefinitions.js',
-            'toolbarState.js',
+            'core',
+            'icons',
+            'shell',
+            'ui',
         ]);
     } finally {
         await rm(temporaryDirectory, {recursive: true, force: true});

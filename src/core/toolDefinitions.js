@@ -17,19 +17,19 @@ export const TOOL_DEFINITIONS = Object.freeze([
     Object.freeze({
         id: Tool.RECTANGLE,
         label: 'Rectangle',
-        iconFile: 'rectangle-symbolic.svg',
+        iconFile: 'icons/rectangle-symbolic.svg',
         defaultWidth: 3,
     }),
     Object.freeze({
         id: Tool.ARROW,
         label: 'Arrow',
-        iconFile: 'arrow-symbolic.svg',
+        iconFile: 'icons/arrow-symbolic.svg',
         defaultWidth: 3,
     }),
     Object.freeze({
         id: Tool.HIGHLIGHTER,
         label: 'Highlighter',
-        iconFile: 'highlighter-symbolic.svg',
+        iconFile: 'icons/highlighter-symbolic.svg',
         defaultWidth: 12,
     }),
 ]);

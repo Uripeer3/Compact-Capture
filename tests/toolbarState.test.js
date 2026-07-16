@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {Tool} from '../src/toolDefinitions.js';
-import {ToolbarState} from '../src/toolbarState.js';
+import {Tool} from '../src/core/toolDefinitions.js';
+import {ToolbarState} from '../src/core/toolbarState.js';
 
 test('provides stable defaults for a new screenshot session', () => {
     const state = new ToolbarState();

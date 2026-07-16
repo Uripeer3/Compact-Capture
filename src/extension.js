@@ -2,10 +2,10 @@
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {AnnotationDocument} from './annotationDocument.js';
-import {CompactToolbar} from './compactToolbar.js';
-import {ScreenshotUiAdapter} from './shellAdapter.js';
-import {ToolbarState} from './toolbarState.js';
+import {AnnotationDocument} from './core/annotationDocument.js';
+import {ToolbarState} from './core/toolbarState.js';
+import {ScreenshotUiAdapter} from './shell/shellAdapter.js';
+import {CompactToolbar} from './ui/compactToolbar.js';
 
 export default class CompactCaptureExtension extends Extension {
     enable() {

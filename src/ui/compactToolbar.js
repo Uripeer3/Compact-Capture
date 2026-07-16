@@ -14,7 +14,7 @@ import {
     LINE_WIDTH_MIN,
     TOOL_COLORS,
     TOOL_DEFINITIONS,
-} from './toolDefinitions.js';
+} from '../core/toolDefinitions.js';
 
 function normalizedLineWidth(lineWidth) {
     return (lineWidth - LINE_WIDTH_MIN) /
