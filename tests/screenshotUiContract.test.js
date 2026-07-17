@@ -29,11 +29,24 @@ function compatibleUi() {
         _selectionButton = new MockToggle();
         _screenButton = new MockToggle();
         _windowButton = new MockToggle();
+        _captureButton = {reactive: true};
         _screenSelectors = [new MockToggle()];
         _areaSelector = {
+            _startX: 0,
+            _startY: 0,
+            _lastX: 10,
+            _lastY: 10,
+            _areaIndicator: {opacity: 255},
+            _topLeftHandle: {opacity: 255},
+            _topRightHandle: {opacity: 255},
+            _bottomLeftHandle: {opacity: 255},
+            _bottomRightHandle: {opacity: 255},
             connect() {},
             disconnect() {},
             getGeometry() {},
+            reset() {},
+            set_cursor_type() {},
+            _updateSelectionRect() {},
         };
 
         open() {}
@@ -88,10 +101,24 @@ test('reports every missing contract member instead of failing at first use', ()
         'Main.screenshotUI.transform_stage_point is unavailable',
         'Main.screenshotUI.visible is unavailable',
         'Main.screenshotUI.open is not defined on its direct prototype',
-        'Main.screenshotUI._primaryMonitorBin is unavailable',
+        'Main.screenshotUI._primaryMonitorBin.add_child is unavailable',
+        'Main.screenshotUI._primaryMonitorBin.remove_child is unavailable',
         'Main.screenshotUI._areaSelector.connect is unavailable',
         'Main.screenshotUI._areaSelector.disconnect is unavailable',
         'Main.screenshotUI._areaSelector.getGeometry is unavailable',
+        'Main.screenshotUI._areaSelector.reset is unavailable',
+        'Main.screenshotUI._areaSelector.set_cursor_type is unavailable',
+        'Main.screenshotUI._areaSelector._updateSelectionRect is unavailable',
+        'Main.screenshotUI._areaSelector._startX is unavailable',
+        'Main.screenshotUI._areaSelector._startY is unavailable',
+        'Main.screenshotUI._areaSelector._lastX is unavailable',
+        'Main.screenshotUI._areaSelector._lastY is unavailable',
+        'Main.screenshotUI._areaSelector._areaIndicator.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._topLeftHandle.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._topRightHandle.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._bottomLeftHandle.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._bottomRightHandle.opacity is unavailable',
+        'Main.screenshotUI._captureButton.reactive is unavailable',
         'Main.screenshotUI._shotButton.checked is unavailable',
         'Main.screenshotUI._shotButton.connect is unavailable',
         'Main.screenshotUI._shotButton.disconnect is unavailable',

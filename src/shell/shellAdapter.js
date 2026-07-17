@@ -1,10 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+import Clutter from 'gi://Clutter';
+
 import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {inspectScreenshotUi} from './screenshotUiContract.js';
+
+const EMPTY_SELECTION_COORDINATE = -1_000_000;
+const SELECTION_VISUAL_FIELDS = Object.freeze([
+    '_areaIndicator',
+    '_topLeftHandle',
+    '_topRightHandle',
+    '_bottomLeftHandle',
+    '_bottomRightHandle',
+]);
 
 function freezeMonitor(monitor, index) {
     return Object.freeze({
@@ -23,6 +34,8 @@ export class ScreenshotUiAdapter {
     #active = false;
     #compatibility = null;
     #connections = [];
+    #emptySelection = false;
+    #emptySelectionOnScreenshotReturn = false;
     #injectionManager = null;
     #lastCaptureType = null;
     #onCaptureChanged;
@@ -34,6 +47,8 @@ export class ScreenshotUiAdapter {
     #screenshotUi;
     #screenshotUiPrototype;
     #sessionOpen = false;
+    #selectionVisualOpacities = null;
+    #captureButtonReactive = null;
 
     constructor({
         onOpened = null,
@@ -109,6 +124,12 @@ export class ScreenshotUiAdapter {
             );
             this.#connect(
                 connections,
+                this.#screenshotUi,
+                'key-press-event',
+                (_actor, event) => this.#handleKeyPress(event)
+            );
+            this.#connect(
+                connections,
                 this.#screenshotUi._areaSelector,
                 'drag-started',
                 () => this.#handleSelectionStarted()
@@ -160,13 +181,50 @@ export class ScreenshotUiAdapter {
     }
 
     disable() {
+        this.#leaveEmptySelection({resetGeometry: true});
         this.#disconnectAll(this.#connections);
         this.#connections = [];
         this.#injectionManager?.clear();
         this.#injectionManager = null;
         this.#sessionOpen = false;
         this.#lastCaptureType = null;
+        this.#emptySelectionOnScreenshotReturn = false;
         this.#active = false;
+    }
+
+    mountSelectionHint(hint) {
+        if (!this.#active || !this.#sessionOpen || !hint ||
+            hint.get_parent?.()) {
+            return false;
+        }
+
+        try {
+            this.#screenshotUi._primaryMonitorBin.add_child(hint);
+            return hint.get_parent?.() ===
+                this.#screenshotUi._primaryMonitorBin;
+        } catch (error) {
+            console.error(
+                'Compact Capture could not mount its selection hint',
+                error
+            );
+            return false;
+        }
+    }
+
+    unmountSelectionHint(hint) {
+        if (!hint)
+            return;
+
+        try {
+            const host = this.#screenshotUi?._primaryMonitorBin;
+            if (hint.get_parent?.() === host)
+                host.remove_child(hint);
+        } catch (error) {
+            console.error(
+                'Compact Capture could not unmount its selection hint',
+                error
+            );
+        }
     }
 
     mountToolbar(toolbar) {
@@ -293,6 +351,10 @@ export class ScreenshotUiAdapter {
             return;
 
         this.#sessionOpen = true;
+        if (this.#screenshotUi._shotButton.checked &&
+            this.#captureType() === 'selection') {
+            this.#enterEmptySelection();
+        }
         const session = this.#currentSession();
         this.#lastCaptureType = session.captureType;
         this.#invokeSafely(this.#onOpened, 'opened', session);
@@ -302,14 +364,27 @@ export class ScreenshotUiAdapter {
         if (!this.#active || !this.#sessionOpen)
             return;
 
+        this.#leaveEmptySelection({resetGeometry: false});
         this.#sessionOpen = false;
         this.#lastCaptureType = null;
+        this.#emptySelectionOnScreenshotReturn = false;
         this.#invokeSafely(this.#onClosed, 'closed');
     }
 
     #handleModeChanged() {
         if (!this.#canDispatch())
             return;
+
+        if (!this.#screenshotUi._shotButton.checked && this.#emptySelection) {
+            this.#leaveEmptySelection({resetGeometry: true});
+            this.#emptySelectionOnScreenshotReturn = true;
+        } else if (this.#screenshotUi._shotButton.checked &&
+            this.#emptySelectionOnScreenshotReturn) {
+            if (this.#captureType() === 'selection')
+                this.#enterEmptySelection();
+            this.#emptySelectionOnScreenshotReturn = false;
+        }
+
         this.#invokeSafely(
             this.#onModeChanged,
             'mode change',
@@ -321,11 +396,20 @@ export class ScreenshotUiAdapter {
         if (!this.#canDispatch())
             return;
 
-        const session = this.#currentSession();
-        if (session.captureType === this.#lastCaptureType)
+        const captureType = this.#captureType();
+        if (captureType === this.#lastCaptureType)
             return;
 
-        this.#lastCaptureType = session.captureType;
+        if (captureType === 'selection' &&
+            this.#screenshotUi._shotButton.checked) {
+            this.#enterEmptySelection();
+        } else {
+            this.#leaveEmptySelection({resetGeometry: true});
+            this.#emptySelectionOnScreenshotReturn = false;
+        }
+
+        const session = this.#currentSession();
+        this.#lastCaptureType = captureType;
         this.#invokeSafely(
             this.#onCaptureChanged,
             'capture type change',
@@ -336,6 +420,7 @@ export class ScreenshotUiAdapter {
     #handleSelectionStarted() {
         if (!this.#canDispatch())
             return;
+        this.#leaveEmptySelection({resetGeometry: false});
         this.#invokeSafely(this.#onSelectionStarted, 'selection drag start');
     }
 
@@ -366,15 +451,96 @@ export class ScreenshotUiAdapter {
         return this.#active && this.#sessionOpen && this.#screenshotUi.visible;
     }
 
+    #handleKeyPress(event) {
+        if (!this.#emptySelection || !this.#isCaptureShortcut(event))
+            return Clutter.EVENT_PROPAGATE;
+        return Clutter.EVENT_STOP;
+    }
+
+    #isCaptureShortcut(event) {
+        const symbol = event.get_key_symbol();
+        if (symbol === Clutter.KEY_Return ||
+            symbol === Clutter.KEY_space ||
+            symbol === Clutter.KEY_KP_Enter ||
+            symbol === Clutter.KEY_ISO_Enter) {
+            return true;
+        }
+
+        const controlPressed =
+            event.get_state() & Clutter.ModifierType.CONTROL_MASK;
+        return controlPressed &&
+            (symbol === Clutter.KEY_c || symbol === Clutter.KEY_C);
+    }
+
+    #captureType() {
+        if (this.#screenshotUi._windowButton.checked)
+            return 'window';
+        if (this.#screenshotUi._screenButton.checked)
+            return 'screen';
+        return 'selection';
+    }
+
+    #enterEmptySelection() {
+        if (this.#emptySelection)
+            return;
+
+        const selector = this.#screenshotUi._areaSelector;
+        this.#selectionVisualOpacities = new Map(
+            SELECTION_VISUAL_FIELDS.map(field => [
+                field,
+                selector[field].opacity,
+            ])
+        );
+        this.#captureButtonReactive =
+            this.#screenshotUi._captureButton.reactive;
+
+        for (const field of SELECTION_VISUAL_FIELDS)
+            selector[field].opacity = 0;
+
+        // Keep GNOME's selector intact, but move its current rectangle far
+        // outside the stage. Its native press handler will consequently start
+        // the next gesture as a fresh crosshair selection.
+        selector._startX = EMPTY_SELECTION_COORDINATE;
+        selector._startY = EMPTY_SELECTION_COORDINATE;
+        selector._lastX = EMPTY_SELECTION_COORDINATE;
+        selector._lastY = EMPTY_SELECTION_COORDINATE;
+        selector._updateSelectionRect();
+        selector.set_cursor_type(Clutter.CursorType.CROSSHAIR);
+        this.#screenshotUi._captureButton.reactive = false;
+        this.#emptySelection = true;
+    }
+
+    #leaveEmptySelection({resetGeometry}) {
+        if (!this.#emptySelection)
+            return;
+
+        const selector = this.#screenshotUi._areaSelector;
+        // A native drag has already supplied valid geometry. Other exits need
+        // GNOME to rebuild its normal default before we return ownership.
+        if (resetGeometry)
+            selector.reset();
+
+        for (const field of SELECTION_VISUAL_FIELDS) {
+            selector[field].opacity =
+                this.#selectionVisualOpacities.get(field);
+        }
+        this.#screenshotUi._captureButton.reactive =
+            this.#captureButtonReactive;
+
+        this.#selectionVisualOpacities = null;
+        this.#captureButtonReactive = null;
+        this.#emptySelection = false;
+    }
+
     #currentSession() {
         const monitors = Main.layoutManager.monitors.map(freezeMonitor);
         let captureType = 'selection';
         let selection = null;
 
-        if (this.#screenshotUi._windowButton.checked) {
-            captureType = 'window';
-        } else if (this.#screenshotUi._screenButton.checked) {
-            captureType = 'screen';
+        captureType = this.#captureType();
+        if (captureType === 'window') {
+            // Window geometry stays owned by GNOME.
+        } else if (captureType === 'screen') {
             const monitorIndex = this.#screenshotUi._screenSelectors.findIndex(
                 selector => selector.checked
             );
@@ -382,7 +548,7 @@ export class ScreenshotUiAdapter {
                 monitors[Main.layoutManager.primaryIndex] ?? monitors[0];
             if (monitor)
                 selection = Object.freeze({...monitor});
-        } else {
+        } else if (!this.#emptySelection) {
             const [x, y, width, height] =
                 this.#screenshotUi._areaSelector.getGeometry();
             if (width > 0 && height > 0)

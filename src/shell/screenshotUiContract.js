@@ -40,16 +40,62 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
             );
         }
 
-        if (!screenshotUi._primaryMonitorBin)
-            issues.push('Main.screenshotUI._primaryMonitorBin is unavailable');
+        const primaryMonitorBin = screenshotUi._primaryMonitorBin;
+        for (const method of ['add_child', 'remove_child']) {
+            if (typeof primaryMonitorBin?.[method] !== 'function') {
+                issues.push(
+                    `Main.screenshotUI._primaryMonitorBin.${method} is unavailable`
+                );
+            }
+        }
 
         const areaSelector = screenshotUi._areaSelector;
-        for (const method of ['connect', 'disconnect', 'getGeometry']) {
+        for (const method of [
+            'connect',
+            'disconnect',
+            'getGeometry',
+            'reset',
+            'set_cursor_type',
+            '_updateSelectionRect',
+        ]) {
             if (typeof areaSelector?.[method] !== 'function') {
                 issues.push(
                     `Main.screenshotUI._areaSelector.${method} is unavailable`
                 );
             }
+        }
+
+        for (const field of [
+            '_startX',
+            '_startY',
+            '_lastX',
+            '_lastY',
+        ]) {
+            if (!Number.isFinite(areaSelector?.[field])) {
+                issues.push(
+                    `Main.screenshotUI._areaSelector.${field} is unavailable`
+                );
+            }
+        }
+
+        for (const field of [
+            '_areaIndicator',
+            '_topLeftHandle',
+            '_topRightHandle',
+            '_bottomLeftHandle',
+            '_bottomRightHandle',
+        ]) {
+            if (!Number.isFinite(areaSelector?.[field]?.opacity)) {
+                issues.push(
+                    `Main.screenshotUI._areaSelector.${field}.opacity is unavailable`
+                );
+            }
+        }
+
+        if (typeof screenshotUi._captureButton?.reactive !== 'boolean') {
+            issues.push(
+                'Main.screenshotUI._captureButton.reactive is unavailable'
+            );
         }
 
         for (const field of [

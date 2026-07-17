@@ -7,16 +7,21 @@ not yet include them in the saved PNG or clipboard image; that is PR 5.
 
 1. Install the branch build and restart GNOME Shell as required by the session.
 2. Enable Compact Capture and open GNOME's screenshot interface.
-3. In Selection mode, confirm the annotation toolbar is initially hidden.
-4. Drag a new area. Confirm the toolbar appears above or below it and that each
+3. In Selection mode, confirm there is no initial rectangle, the annotation
+   toolbar is hidden, and the selection/full-screen hint is visible.
+4. Confirm Enter, Space and Ctrl+C do not capture an invisible default area.
+5. Drag a new area. Confirm the hint disappears, the native rectangle follows
+   the pointer, and the toolbar appears above or below it. Confirm that each
    tool draws a live preview inside the area.
-5. Confirm Undo removes the most recent completed stroke and Clear removes all
+6. Confirm Undo removes the most recent completed stroke and Clear removes all
    completed strokes.
-6. Drag a native selection edge. Confirm the toolbar and drawings disappear
+7. Drag a native selection edge. Confirm the toolbar and drawings disappear
    during adjustment and return for the new geometry.
-7. Switch to Screen mode. Confirm the chosen monitor is drawable and selecting
+8. Return to empty Selection mode, press C and then Enter, and confirm GNOME
+   captures the selected full screen normally.
+9. Switch to Screen mode. Confirm the chosen monitor is drawable and selecting
    another monitor moves the toolbar and clears the previous annotation state.
-8. Switch to Window or recording mode. Confirm Compact Capture hides and GNOME's
+10. Switch to Window or recording mode. Confirm Compact Capture hides and GNOME's
    native controls continue to work.
 
 ## Cleanup and compatibility

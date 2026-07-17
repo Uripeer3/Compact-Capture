@@ -12,8 +12,9 @@ Compact Capture will own only annotation state, rendering and its compact UI.
 
 The project now includes a narrow GNOME 50 adapter, a compact annotation
 toolbar and a monitor-aware live drawing overlay. In area mode, annotation
-controls stay hidden until the native selection drag finishes. Freehand,
-rectangle, arrow and highlighter previews, undo and clear now work.
+starts empty with a short keyboard hint; annotation controls stay hidden until
+the native selection drag finishes. Freehand, rectangle, arrow and highlighter
+previews, undo and clear now work.
 
 PR 4 is still a preview milestone: annotations are not yet composited into the
 saved screenshot. PR 5 will connect the document to GNOME's native output path,

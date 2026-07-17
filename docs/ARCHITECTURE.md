@@ -58,6 +58,7 @@ data and actor operations:
 - screenshot/recording and capture-type state;
 - selection and monitor geometry in stage-logical coordinates;
 - selection drag lifecycle events;
+- a reversible empty-selection gate for area mode;
 - mounting, placing and unmounting toolbar and overlay actors.
 
 The toolbar and extension controller never receive the ScreenshotUI object,
@@ -88,6 +89,17 @@ lifetime.
 Placement is selection-aware: controls stay hidden during an area drag, prefer
 the space above or below the completed selection, and use the top of the
 selected monitor as the fallback.
+
+Area mode starts with GNOME's default rectangle temporarily moved off-stage and
+its selector visuals hidden. The native capture button and native capture
+shortcuts are gated while no area exists. The adapter restores the selector on
+the first native drag, when leaving area mode, and during disable/close cleanup.
+This keeps the empty state reversible and leaves GNOME's selector implementation
+responsible for the actual drag, resize and geometry rules.
+
+While area mode is empty, a non-reactive hint on the primary monitor explains
+the native keyboard route: drag an area, or press `C` and then `Enter` for a
+screen capture. The hint disappears synchronously when selection starts.
 
 Every compact control retains an accessible name and has a delayed hover hint.
 Tooltip actors are mounted beside the toolbar so they can use monitor-local

@@ -12,6 +12,7 @@ import {ToolbarState} from './core/toolbarState.js';
 import {ScreenshotUiAdapter} from './shell/shellAdapter.js';
 import {AnnotationOverlay} from './ui/annotationOverlay.js';
 import {CompactToolbar} from './ui/compactToolbar.js';
+import {SelectionHint} from './ui/selectionHint.js';
 
 const DRAWING_GUTTER = 8;
 
@@ -20,6 +21,7 @@ export default class CompactCaptureExtension extends Extension {
         this._document = new AnnotationDocument();
         this._toolbarState = new ToolbarState();
         this._toolbar = null;
+        this._selectionHint = null;
         this._overlays = [];
         this._session = null;
         this._awaitingAreaSelection = true;
@@ -42,6 +44,7 @@ export default class CompactCaptureExtension extends Extension {
                 this._document.clear();
                 this._awaitingAreaSelection = true;
                 this._hideAnnotationUi();
+                this._hideSelectionHint();
             },
             onSelectionChanged: session => {
                 if (session.captureType !== 'selection')
@@ -51,6 +54,7 @@ export default class CompactCaptureExtension extends Extension {
             },
             onClosed: () => {
                 this._hideAnnotationUi();
+                this._hideSelectionHint();
                 this._document.clear();
                 this._session = null;
                 this._awaitingAreaSelection = true;
@@ -61,6 +65,7 @@ export default class CompactCaptureExtension extends Extension {
 
     disable() {
         this._hideAnnotationUi();
+        this._hideSelectionHint();
         this._shellAdapter?.disable();
         this._shellAdapter = null;
 
@@ -72,6 +77,9 @@ export default class CompactCaptureExtension extends Extension {
 
     _refreshSession(session) {
         this._session = session;
+        if (session.captureType === 'selection' && !session.selection)
+            this._awaitingAreaSelection = true;
+
         const supported = session.isScreenshot &&
             session.captureType !== 'window' &&
             session.selection !== null;
@@ -80,9 +88,14 @@ export default class CompactCaptureExtension extends Extension {
 
         if (!supported || waiting) {
             this._hideAnnotationUi();
+            if (session.isScreenshot && waiting)
+                this._showSelectionHint();
+            else
+                this._hideSelectionHint();
             return;
         }
 
+        this._hideSelectionHint();
         this._rebuildAnnotationUi();
     }
 
@@ -164,6 +177,28 @@ export default class CompactCaptureExtension extends Extension {
         this._shellAdapter?.unmountToolbar(this._toolbar);
         this._toolbar.destroy();
         this._toolbar = null;
+    }
+
+    _showSelectionHint() {
+        if (this._selectionHint)
+            return;
+
+        const hint = new SelectionHint();
+        if (!this._shellAdapter.mountSelectionHint(hint)) {
+            hint.destroy();
+            return;
+        }
+
+        this._selectionHint = hint;
+    }
+
+    _hideSelectionHint() {
+        if (!this._selectionHint)
+            return;
+
+        this._shellAdapter?.unmountSelectionHint(this._selectionHint);
+        this._selectionHint.destroy();
+        this._selectionHint = null;
     }
 
     _repaintOverlays() {
