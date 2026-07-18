@@ -4,6 +4,13 @@ Compact Capture is an experimental extension and an upstream design prototype.
 Each pull request must remain independently reviewable, leave GNOME's native
 capture path usable and include tests for new Shell-independent behaviour.
 
+Manual acceptance is tracked in the
+[cumulative test checklist](docs/CUMULATIVE-TEST-CHECKLIST.md). Starting with
+PR 12, each PR-specific test contract must reference that checklist, add its
+new coverage there and carry forward unresolved applicable rows. Historical
+results remain tied to the commit and environment that produced them; a code
+fix does not become a manual Pass until the affected row is rerun.
+
 The private ScreenshotUI adapter and extension lifecycle are prototype code.
 The annotation model, rendering rules, interaction design and tests are the
 parts intended to inform a later GNOME Shell patch series.
