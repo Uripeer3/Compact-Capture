@@ -6,6 +6,7 @@ import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+import {shortcutAction} from '../core/keyboardShortcuts.js';
 import {createAnnotationOutput} from './outputRenderer.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
@@ -51,6 +52,7 @@ export class ScreenshotUiAdapter {
     #onOpened;
     #onSelectionChanged;
     #onSelectionStarted;
+    #onShortcut;
     #screenshotUi;
     #screenshotUiPrototype;
     #sessionOpen = false;
@@ -66,6 +68,7 @@ export class ScreenshotUiAdapter {
         onCaptureChanged = null,
         onSelectionStarted = null,
         onSelectionChanged = null,
+        onShortcut = null,
         getAnnotations = null,
     } = {}) {
         this.#screenshotUi = Main.screenshotUI;
@@ -78,6 +81,7 @@ export class ScreenshotUiAdapter {
         this.#onCaptureChanged = onCaptureChanged;
         this.#onSelectionStarted = onSelectionStarted;
         this.#onSelectionChanged = onSelectionChanged;
+        this.#onShortcut = onShortcut;
         this.#getAnnotations = getAnnotations;
     }
 
@@ -476,9 +480,42 @@ export class ScreenshotUiAdapter {
     }
 
     #handleKeyPress(event) {
-        if (!this.#emptySelection || !this.#isCaptureShortcut(event))
+        if (this.#emptySelection && this.#isCaptureShortcut(event))
+            return Clutter.EVENT_STOP;
+        if (!this.#canDispatch())
             return Clutter.EVENT_PROPAGATE;
-        return Clutter.EVENT_STOP;
+
+        const action = shortcutAction({
+            key: this.#shortcutKey(event.get_key_symbol()),
+            control: Boolean(
+                event.get_state() & Clutter.ModifierType.CONTROL_MASK
+            ),
+            shift: Boolean(
+                event.get_state() & Clutter.ModifierType.SHIFT_MASK
+            ),
+        });
+        if (!action || typeof this.#onShortcut !== 'function')
+            return Clutter.EVENT_PROPAGATE;
+
+        try {
+            return this.#onShortcut(action)
+                ? Clutter.EVENT_STOP
+                : Clutter.EVENT_PROPAGATE;
+        } catch (error) {
+            console.error(
+                'Compact Capture failed while handling an editing shortcut',
+                error
+            );
+            return Clutter.EVENT_PROPAGATE;
+        }
+    }
+
+    #shortcutKey(symbol) {
+        if (symbol === Clutter.KEY_z || symbol === Clutter.KEY_Z)
+            return 'z';
+        if (symbol === Clutter.KEY_y || symbol === Clutter.KEY_Y)
+            return 'y';
+        return '';
     }
 
     #isCaptureShortcut(event) {

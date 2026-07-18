@@ -14,7 +14,10 @@ The project now includes a narrow GNOME 50 adapter, a compact annotation
 toolbar and a monitor-aware live drawing overlay. In area mode, annotation
 starts empty with a short keyboard hint; annotation controls stay hidden until
 the native selection drag finishes. Freehand, rectangle, arrow and highlighter
-previews, undo and clear now work.
+previews, undo, redo and clear now work. Conventional `Ctrl+Z`,
+`Ctrl+Shift+Z` and `Ctrl+Y` shortcuts are available while the annotation UI is
+active. Compact Capture does not intercept `Esc`; GNOME retains ownership of
+its screenshot-interface shortcut behaviour.
 
 Area and screen annotations are now composited into copied and saved
 screenshots through GNOME's native output path. Captures without annotations,
@@ -30,7 +33,9 @@ have a drawing overlay; window capture stays entirely native for now. GNOME's
 pointer, capture and screen-recording controls remain available and unchanged.
 
 See [ROADMAP.md](ROADMAP.md) for the sequence to a usable 0.1 release and
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the ownership boundary.
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the ownership boundary. The
+approved v0.1 interaction and visual contract is recorded in
+[docs/DESIGN.md](docs/DESIGN.md).
 
 ## Development checks
 
@@ -46,10 +51,17 @@ Once the GNOME adapter lands, building the extension will additionally require
 
 ```sh
 ./build.sh
-gnome-extensions install --force dist/compact-capture@uripeer3.github.io.shell-extension.zip 
+gnome-extensions install --force dist/compact-capture@uripeer3.github.io.shell-extension.zip
 ```
 
-After installation make sure to Log-Off and back on befor enabling the Extention.
+On a Wayland session, log out and back in after the first manual installation
+so GNOME Shell discovers the new extension. During development, GJS caches
+loaded modules; after replacing extension files, a fresh login is the reliable
+way to test new JavaScript. Installing a normal extension through GNOME's
+extension service hides most of this discovery and update lifecycle.
+
+See the per-PR testing documents in `docs/` for the manual checks expected in a
+real GNOME session.
 
 ## Licence and provenance
 

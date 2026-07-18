@@ -38,6 +38,8 @@
 
 .compact-capture-icon-button:insensitive {
     color: st-transparentize(-st-accent-fg-color, 0.55);
+    background-color: transparent;
+    box-shadow: none;
 }
 
 .compact-capture-color-button {

@@ -1,89 +1,112 @@
 # Pull request roadmap
 
-Each pull request should remain usable as an independent review unit. The
-adapter-specific work is intentionally separated from the model and renderer
-that may later be proposed directly to GNOME Shell.
+Compact Capture is an experimental extension and an upstream design prototype.
+Each pull request must remain independently reviewable, leave GNOME's native
+capture path usable and include tests for new Shell-independent behaviour.
 
-## PR 1 — Licensed foundation and annotation core
+The private ScreenshotUI adapter and extension lifecycle are prototype code.
+The annotation model, rendering rules, interaction design and tests are the
+parts intended to inform a later GNOME Shell patch series.
 
-Status: merged.
+## Completed foundation
 
-- Establish the GPL-3.0-only project and attribution.
-- Add a unique extension identity for Compact Capture.
-- Add the Shell-independent annotation document and four initial tools.
-- Add renderer primitives adapted from the GPL-licensed Gradia Capture code.
-- Add unit tests and dependency-free CI.
-- Explicitly exclude storage, clipboard, toast, OCR, Gradia integration and
-  unlicensed selection-clearing code.
-
-## PR 2 — Narrow GNOME Shell adapter
+### PR 1 — Licensed foundation and annotation core
 
 Status: merged.
 
-- Add one version-gated module as the only owner of private ScreenshotUI access.
-- Observe screenshot open/close lifecycle without changing capture behaviour.
-- Use `InjectionManager` for reversible interception.
-- Add deterministic enable/disable cleanup and failure rollback.
-- Pass native capture through unchanged when Compact Capture is inactive.
+- Established the GPL-3.0-only project and provenance record.
+- Added a Shell-independent annotation document and four drawing tools.
+- Kept storage, clipboard, OCR and external-editor integration out of scope.
 
-## PR 3 — Compact, accessible toolbar
+### PR 2 — Narrow GNOME Shell adapter
 
 Status: merged.
 
-- Add the Spectacle-inspired compact tool strip.
-- Support freehand, rectangle, arrow and highlighter selection.
-- Add accessible names, keyboard focus, visible state and theme-derived colours.
-- Keep GNOME's native capture types, pointer toggle and screencast controls.
+- Isolated private ScreenshotUI access behind one version-gated adapter.
+- Added reversible interception, deterministic cleanup and fail-open behaviour.
+- Kept GNOME's original capture path unchanged while annotations are inactive.
 
-## PR 4 — Monitor-aware annotation overlay
+### PR 3 — Compact, accessible toolbar
 
 Status: merged.
 
-- Add drawing canvases without replacing GNOME's selection UI.
-- Start area mode without GNOME's default rectangle and show a compact hint.
-- Hide annotation controls while an area is being created or adjusted.
-- After selection, prefer the toolbar above or below the selected area and
-  fall back to the top of its monitor when neither position fits.
-- Define stage-logical, monitor-local and output-pixel coordinate conversions.
-- Support mixed-scale and secondary-monitor placement.
-- Add point sampling and bounded repaint work for older hardware.
+- Added the compact tool strip and recognizable symbolic artwork.
+- Added accessible names, hover hints, keyboard focus and theme-derived colours.
+- Preserved GNOME's capture modes, pointer toggle and recording controls.
 
-## PR 5 — Native output bridge
+### PR 4 — Monitor-aware annotation overlay
 
-Status: implemented in this pull request.
+Status: merged.
 
-- If the document is empty, invoke GNOME's original save path unchanged.
-- If annotated, render one final texture and hand it to GNOME's native
-  `captureScreenshot()` pipeline.
-- Keep GNOME responsible for PNG encoding, clipboard MIME, filename, lockdown,
-  notification and sound.
-- Add capture-in-progress protection and error handling.
+- Added selection-first area capture and monitor-aware drawing overlays.
+- Kept controls hidden during selection and placed them beside the result.
+- Added explicit coordinate conversions and bounded long-stroke work.
 
-## PR 6 — Editing completeness
+### PR 5 — Native output bridge
 
-- Add text using Pango for both preview and output.
-- Add numbered markers with one consistent numbering policy.
-- Add selection, movement, undo and clear behaviour.
-- Verify keyboard and input-method behaviour.
+Status: merged.
 
-## PR 7 — Preferences, translations and compatibility
+- Composited annotated output into GNOME's native save and clipboard pipeline.
+- Kept empty documents, window capture and screen recording fully native.
+- Avoided private Cairo buffers and unsupported actor capture methods.
 
-- Add only preferences that affect Compact Capture's own tools.
+## Version 0.1
+
+Version 0.1 validates a fast capture-and-mark-up workflow. Its drawing tools are
+freehand, rectangle, arrow, highlighter, pixelate and blur. Text, numbered
+markers, object selection and external export integrations are deferred.
+
+### PR 6 — Editing history and project contract
+
+Status: in progress.
+
+- Add redo with deterministic history invalidation.
+- Add conventional undo/redo shortcuts without intercepting unrelated GNOME
+  keys.
+- Make shortcut and signal cleanup follow the screenshot UI lifecycle.
+- Record the approved v0.1 design, scope and manual test contract.
+
+### PR 7 — GNOME visual and accessibility polish
+
+- Implement the approved compact spacing and state treatment from the design
+  specification.
+- Verify symbolic icons, hover hints, keyboard focus, contrast and touch target
+  behaviour without enlarging the toolbar unnecessarily.
+- Replace the per-control tooltip actors with one toolbar-owned tooltip
+  controller, including keyboard-focus hints and rapid-transition tests.
+- Keep the toolbar outside the selected output whenever monitor space permits.
+
+### PR 8 — Pixelate and blur
+
+- Add one Obscure tool with Pixelate as its default treatment and Blur as the
+  alternative.
+- Add rectangular obscure regions, resizing and an intensity control.
+- Guarantee preview, saved PNG and clipboard parity.
+- Bound preview and output work for large regions and older hardware.
+- Explain that visual obscuring is not a substitute for secure redaction.
+
+### PR 9 — Translations and compatibility
+
 - Add gettext integration and RTL review.
-- Add GNOME 49/50 compatibility fixtures and explicit fail-open behaviour.
-- Document privacy, limitations and troubleshooting.
+- Add explicit supported-version fixtures and fail-open compatibility checks.
+- Document privacy behaviour, limitations and troubleshooting.
 
-## PR 8 — 0.1 release hardening
+### PR 10 — 0.1 release hardening
 
-- Test nested and real Fedora GNOME sessions.
-- Test 100%, 200% and mixed-scale multi-monitor configurations.
-- Measure long-stroke and 4K capture performance.
-- Verify the extension package contents and extensions.gnome.org review rules.
-- Publish the first signed source archive after manual acceptance testing.
+- Test real Fedora GNOME sessions at 100%, 200% and mixed monitor scales.
+- Measure long-stroke, large obscure-region and 4K capture performance.
+- Verify package contents and extensions.gnome.org review requirements.
+- Publish the 0.1 source archive after manual acceptance testing.
+
+## After 0.1
+
+Candidate follow-up work includes text, numbered markers, selecting and moving
+existing annotations, window annotations and optional export integrations.
+These features require separate design review and are not release blockers.
 
 ## Path to GNOME Shell
 
-After the extension validates the workflow, upstream work should be a new GNOME
-Shell patch series. The annotation model, rendering rules, interaction design
-and test cases are candidates to port. The private-field adapter, monkey patches
-and extension lifecycle code are prototypes and should not be upstreamed.
+After the extension validates the workflow, upstream work should become a new
+GNOME Shell patch series rather than an extension merge. Port the validated
+model, rendering rules, interaction design and tests. Do not upstream the
+private-field adapter, method injection or extension lifecycle scaffolding.

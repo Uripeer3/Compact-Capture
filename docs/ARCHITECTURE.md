@@ -29,7 +29,8 @@ Compact Capture owns:
 
 - `extension.js`: small lifecycle coordinator.
 - `shell/shellAdapter.js`: private GNOME access and compatibility checks.
-- `core/annotationDocument.js`: pure, testable state model.
+- `core/annotationDocument.js`: pure, testable document and history model.
+- `core/keyboardShortcuts.js`: pure shortcut-to-action mapping.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
 - `shell/outputRenderer.js`: selection-sized transparent output texture.
@@ -111,10 +112,23 @@ Shell widgets and emits semantic tool/style/action signals.
 independently of Shell so the state is unit-testable and survives switching
 temporarily into recording mode.
 
-Undo and clear track committed annotations. The toolbar is destroyed when
+Undo and redo move complete strokes between session-local stacks. A
+new committed stroke invalidates redo history, clear resets both stacks and an
+in-progress gesture is cancelled before committed history is changed. History
+does not survive closing ScreenshotUI because it has no meaning outside the
+captured frame.
+
+The toolbar is destroyed when
 ScreenshotUI closes and recreated for the next native screenshot session; all
 child widgets and their signal connections therefore share one deterministic
 lifetime.
+
+The adapter translates ScreenshotUI key events into Shell-independent undo and
+redo actions. `Ctrl+Z` performs undo, while `Ctrl+Shift+Z` and `Ctrl+Y` perform
+redo. Unhandled keys, including GNOME's capture shortcuts, propagate unchanged.
+The key signal shares the adapter's existing transactional enable/disable
+lifecycle. Compact Capture does not install an Escape handler; GNOME retains
+that key throughout the screenshot lifecycle.
 
 Placement is selection-aware: controls stay hidden during an area drag, prefer
 the space above or below the completed selection, and use the top of the
@@ -157,7 +171,11 @@ only `_saveScreenshot()` and always delegates storage to its original method.
 
 ## Deliberate exclusions
 
-Version 0.1 will not provide alternate image formats, Save As, custom storage,
-custom notifications, OCR or external-editor integration. These require taking
-ownership away from GNOME and would obscure whether the compact annotation
-workflow itself is successful.
+Version 0.1 will add pixelate and blur but will not provide text, numbered
+markers, selecting and moving existing annotations, alternate image formats,
+Save As, custom storage, custom notifications, OCR or external-editor
+integration. These require additional interaction design or ownership beyond
+the compact workflow being validated.
+
+Pixelate and blur are visual obscuring tools, not secure redaction. That
+distinction must remain visible in documentation and user-facing guidance.

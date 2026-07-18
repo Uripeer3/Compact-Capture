@@ -63,6 +63,12 @@ test('undo, clear and cancel have deterministic state', () => {
     document.beginStroke(validStroke);
     document.appendPoint({x: 2, y: 3});
     document.commitStroke();
+    assert.equal(document.canUndo, true);
+    assert.equal(document.canRedo, false);
+    assert.equal(document.undo(), true);
+    assert.equal(document.canRedo, true);
+    assert.equal(document.redo(), true);
+    assert.equal(document.size, 1);
     assert.equal(document.undo(), true);
     assert.equal(document.undo(), false);
 
@@ -75,6 +81,36 @@ test('undo, clear and cancel have deterministic state', () => {
     document.commitStroke();
     document.clear();
     assert.deepEqual(document.snapshot(), []);
+    assert.equal(document.canUndo, false);
+    assert.equal(document.canRedo, false);
+});
+
+test('a new committed stroke invalidates redo history', () => {
+    const document = new AnnotationDocument();
+    document.beginStroke(validStroke);
+    document.appendPoint({x: 2, y: 3});
+    document.commitStroke();
+    document.undo();
+
+    document.beginStroke({...validStroke, point: {x: 10, y: 20}});
+    document.appendPoint({x: 30, y: 40});
+    document.commitStroke();
+
+    assert.equal(document.canRedo, false);
+    assert.equal(document.redo(), false);
+    assert.equal(document.size, 1);
+    assert.deepEqual(document.snapshot()[0].points[0], {x: 10, y: 20});
+});
+
+test('undo cancels a draft before changing committed history', () => {
+    const document = new AnnotationDocument();
+    document.beginStroke(validStroke);
+
+    assert.equal(document.canUndo, true);
+    assert.equal(document.undo(), true);
+    assert.equal(document.isDrawing, false);
+    assert.equal(document.size, 0);
+    assert.equal(document.canRedo, false);
 });
 
 test('rejects invalid tool, style and coordinate input', () => {

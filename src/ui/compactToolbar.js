@@ -39,6 +39,7 @@ export const CompactToolbar = GObject.registerClass({
         'color-changed': {param_types: [GObject.TYPE_STRING]},
         'line-width-changed': {param_types: [GObject.TYPE_DOUBLE]},
         undo: {},
+        redo: {},
         clear: {},
     },
 }, class CompactToolbar extends St.BoxLayout {
@@ -65,6 +66,7 @@ export const CompactToolbar = GObject.registerClass({
         this._toolButtons = new Map();
         this._colorButtons = new Map();
         this._tooltips = [];
+        this._tooltipsByWidget = new Map();
 
         this._buildToolButtons();
         this._addSeparator();
@@ -76,7 +78,11 @@ export const CompactToolbar = GObject.registerClass({
 
         this._syncToolButtons();
         this._syncColorButtons();
-        this.setActionSensitivity({canUndo: false, canClear: false});
+        this.setActionSensitivity({
+            canUndo: false,
+            canRedo: false,
+            canClear: false,
+        });
         this.connect('destroy', () => this._destroyTooltips());
     }
 
@@ -96,11 +102,10 @@ export const CompactToolbar = GObject.registerClass({
         return [...this._tooltips];
     }
 
-    setActionSensitivity({canUndo, canClear}) {
-        this._undoButton.reactive = canUndo;
-        this._undoButton.can_focus = canUndo;
-        this._clearButton.reactive = canClear;
-        this._clearButton.can_focus = canClear;
+    setActionSensitivity({canUndo, canRedo, canClear}) {
+        this._setButtonSensitivity(this._undoButton, canUndo);
+        this._setButtonSensitivity(this._redoButton, canRedo);
+        this._setButtonSensitivity(this._clearButton, canClear);
     }
 
     _buildToolButtons() {
@@ -170,6 +175,11 @@ export const CompactToolbar = GObject.registerClass({
             'Undo',
             () => this.emit('undo')
         );
+        this._redoButton = this._createActionButton(
+            'edit-redo-symbolic',
+            'Redo',
+            () => this.emit('redo')
+        );
         this._clearButton = this._createActionButton(
             'edit-clear-all-symbolic',
             'Clear all annotations',
@@ -192,7 +202,9 @@ export const CompactToolbar = GObject.registerClass({
     }
 
     _attachTooltip(widget, text) {
-        this._tooltips.push(new CompactTooltip(widget, text));
+        const tooltip = new CompactTooltip(widget, text);
+        this._tooltips.push(tooltip);
+        this._tooltipsByWidget.set(widget, tooltip);
     }
 
     _destroyTooltips() {
@@ -200,6 +212,19 @@ export const CompactToolbar = GObject.registerClass({
             tooltip.close();
             tooltip.destroy();
         }
+        this._tooltipsByWidget.clear();
+    }
+
+    _setButtonSensitivity(button, sensitive) {
+        if (button.reactive === sensitive &&
+            button.can_focus === sensitive) {
+            return;
+        }
+
+        if (!sensitive)
+            this._tooltipsByWidget.get(button)?.close();
+        button.reactive = sensitive;
+        button.can_focus = sensitive;
     }
 
     _addSeparator() {
