@@ -28,7 +28,7 @@ Status: merged.
 
 ## PR 3 — Compact, accessible toolbar
 
-Status: implemented in this pull request.
+Status: merged.
 
 - Add the Spectacle-inspired compact tool strip.
 - Support freehand, rectangle, arrow and highlighter selection.
@@ -37,7 +37,10 @@ Status: implemented in this pull request.
 
 ## PR 4 — Monitor-aware annotation overlay
 
+Status: implemented in this pull request.
+
 - Add drawing canvases without replacing GNOME's selection UI.
+- Start area mode without GNOME's default rectangle and show a compact hint.
 - Hide annotation controls while an area is being created or adjusted.
 - After selection, prefer the toolbar above or below the selected area and
   fall back to the top of its monitor when neither position fits.

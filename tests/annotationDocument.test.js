@@ -46,6 +46,18 @@ test('ignores consecutive duplicate points', () => {
     assert.equal(document.snapshot()[0].points.length, 2);
 });
 
+test('replaces the live endpoint for shape tools', () => {
+    const document = new AnnotationDocument();
+    document.beginStroke({...validStroke, tool: Tool.RECTANGLE});
+    document.replaceEndPoint({x: 5, y: 6});
+    document.replaceEndPoint({x: 7, y: 8});
+
+    assert.deepEqual(document.snapshot({includeDraft: true})[0].points, [
+        {x: 1, y: 2},
+        {x: 7, y: 8},
+    ]);
+});
+
 test('undo, clear and cancel have deterministic state', () => {
     const document = new AnnotationDocument();
     document.beginStroke(validStroke);

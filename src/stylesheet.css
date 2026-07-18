@@ -1,8 +1,12 @@
 .compact-capture-toolbar {
     spacing: 6px;
     padding: 6px;
-    margin: 12px 12px 0;
-    margin-bottom: 0;
+    margin: 0;
+    border-radius: 999px;
+}
+
+.compact-capture-selection-hint {
+    padding: 8px 14px;
     border-radius: 999px;
 }
 

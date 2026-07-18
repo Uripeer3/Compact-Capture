@@ -62,6 +62,17 @@ export class AnnotationDocument {
             this.#draft.points.push(next);
     }
 
+    replaceEndPoint(point) {
+        if (!this.#draft)
+            throw new Error('No stroke is in progress');
+
+        const next = clonePoint(point);
+        if (this.#draft.points.length === 1)
+            this.#draft.points.push(next);
+        else
+            this.#draft.points[this.#draft.points.length - 1] = next;
+    }
+
     commitStroke() {
         if (!this.#draft)
             return false;

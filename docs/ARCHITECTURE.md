@@ -31,7 +31,7 @@ Compact Capture owns:
 - `shell/shellAdapter.js`: private GNOME access and compatibility checks.
 - `core/annotationDocument.js`: pure, testable state model.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
-- `ui/annotationOverlay.js`: monitor-aware pointer and keyboard interaction.
+- `ui/annotationOverlay.js`: monitor-aware pointer and touch interaction.
 - `ui/compactToolbar.js`: accessible Shell UI.
 
 GNOME-required entry files remain at the source root. Shell-independent state
@@ -52,10 +52,14 @@ screenshot/recording mode signals. Patching the prototype allows
 wrapper awaits and returns the original result; it does not catch, translate or
 replace native capture errors.
 
-The adapter translates private Shell details into two narrow operations:
+The adapter translates private Shell details into narrow, immutable session
+data and actor operations:
 
-- a high-level `isScreenshot` session flag;
-- mounting or unmounting one actor in the primary monitor bin.
+- screenshot/recording and capture-type state;
+- selection and monitor geometry in stage-logical coordinates;
+- selection drag lifecycle events;
+- a reversible empty-selection gate for area mode;
+- mounting, placing and unmounting toolbar and overlay actors.
 
 The toolbar and extension controller never receive the ScreenshotUI object,
 capture buttons or monitor bin themselves.
@@ -77,21 +81,49 @@ Shell widgets and emits semantic tool/style/action signals.
 independently of Shell so the state is unit-testable and survives switching
 temporarily into recording mode.
 
-Undo and clear are present but insensitive until PR 4 adds annotations. The
-toolbar is destroyed when ScreenshotUI closes and recreated for the next native
-screenshot session; all child widgets and their signal connections therefore
-share one deterministic lifetime.
+Undo and clear track committed annotations. The toolbar is destroyed when
+ScreenshotUI closes and recreated for the next native screenshot session; all
+child widgets and their signal connections therefore share one deterministic
+lifetime.
 
-PR 3 anchors the toolbar to the top of the primary monitor so it cannot cover
-the centre of GNOME's initial area selection. PR 4 will make placement
-selection-aware: hide controls during an area drag, prefer the space above or
-below the completed selection, and use the top of the selected monitor as the
-fallback.
+Placement is selection-aware: controls stay hidden during an area drag, prefer
+the space above or below the completed selection, and use the top of the
+selected monitor as the fallback.
+
+Area mode starts with GNOME's default rectangle temporarily moved off-stage.
+Its selection cutout, border and handles are hidden while GNOME's native shade
+continues to dim the captured desktop. The native capture button and capture
+shortcuts are gated while no area exists. The adapter restores the selector on
+the first native drag, when leaving area mode, and during disable/close cleanup.
+This keeps the empty state reversible and leaves GNOME's selector implementation
+responsible for the actual drag, resize and geometry rules.
+
+While area mode is empty, a non-reactive hint on the primary monitor explains
+the native keyboard route: drag an area, or press `C` and then `Enter` for a
+screen capture. The hint disappears synchronously when selection starts.
 
 Every compact control retains an accessible name and has a delayed hover hint.
 Tooltip actors are mounted beside the toolbar so they can use monitor-local
 coordinates without taking ownership of ScreenshotUI. They are cancelled and
 destroyed with the toolbar, including when a hint is still waiting to open.
+
+## Overlay boundary
+
+`ui/annotationOverlay.js` owns pointer/touch gestures and Cairo preview only.
+It stores stage-logical points in the Shell-independent annotation document.
+Small drawing actors cover only the selected region on each intersecting
+monitor; an eight-pixel outer gutter remains available to GNOME's native resize
+handles. Starting a native selection drag removes the overlays and controls,
+then rebuilds them from the completed geometry.
+
+Freehand input is sampled at a two-logical-pixel threshold and capped at 4096
+points per gesture. Repaint requests are coalesced by Clutter, and rendering
+work therefore remains bounded even on long strokes. Coordinate conversion and
+toolbar placement rules live in `core/geometry.js` and are covered by Node
+tests, including secondary-monitor and mixed-output-scale examples.
+
+Window annotation and final image compositing are deliberately absent in PR 4.
+No save, clipboard, notification or capture method is intercepted.
 
 ## Deliberate exclusions
 

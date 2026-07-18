@@ -12,6 +12,7 @@ function compatibleUi() {
     class MockActor {
         add_child() {}
         remove_child() {}
+        transform_stage_point() {}
     }
 
     class MockToggle {
@@ -25,10 +26,39 @@ function compatibleUi() {
         visible = false;
         _primaryMonitorBin = new MockActor();
         _shotButton = new MockToggle();
+        _selectionButton = new MockToggle();
+        _screenButton = new MockToggle();
+        _windowButton = new MockToggle();
+        _captureButton = {reactive: true};
+        _screenSelectors = [new MockToggle()];
+        _areaSelector = {
+            _startX: 0,
+            _startY: 0,
+            _lastX: 10,
+            _lastY: 10,
+            _areaIndicator: {
+                _selectionRect: {opacity: 255},
+                setSelectionRect() {},
+            },
+            _topLeftHandle: {opacity: 255},
+            _topRightHandle: {opacity: 255},
+            _bottomLeftHandle: {opacity: 255},
+            _bottomRightHandle: {opacity: 255},
+            connect() {},
+            disconnect() {},
+            getGeometry() {},
+            reset() {},
+            set_cursor_type() {},
+            _updateSelectionRect() {},
+        };
 
         open() {}
         connect() {}
         disconnect() {}
+        add_child() {}
+        insert_child_below() {}
+        remove_child() {}
+        transform_stage_point() {}
     }
 
     return new MockScreenshotUi();
@@ -68,12 +98,43 @@ test('reports every missing contract member instead of failing at first use', ()
     assert.deepEqual(result.issues, [
         'Main.screenshotUI.connect is unavailable',
         'Main.screenshotUI.disconnect is unavailable',
+        'Main.screenshotUI.add_child is unavailable',
+        'Main.screenshotUI.insert_child_below is unavailable',
+        'Main.screenshotUI.remove_child is unavailable',
+        'Main.screenshotUI.transform_stage_point is unavailable',
         'Main.screenshotUI.visible is unavailable',
         'Main.screenshotUI.open is not defined on its direct prototype',
         'Main.screenshotUI._primaryMonitorBin.add_child is unavailable',
         'Main.screenshotUI._primaryMonitorBin.remove_child is unavailable',
+        'Main.screenshotUI._areaSelector.connect is unavailable',
+        'Main.screenshotUI._areaSelector.disconnect is unavailable',
+        'Main.screenshotUI._areaSelector.getGeometry is unavailable',
+        'Main.screenshotUI._areaSelector.reset is unavailable',
+        'Main.screenshotUI._areaSelector.set_cursor_type is unavailable',
+        'Main.screenshotUI._areaSelector._updateSelectionRect is unavailable',
+        'Main.screenshotUI._areaSelector._startX is unavailable',
+        'Main.screenshotUI._areaSelector._startY is unavailable',
+        'Main.screenshotUI._areaSelector._lastX is unavailable',
+        'Main.screenshotUI._areaSelector._lastY is unavailable',
+        'Main.screenshotUI._areaSelector._areaIndicator.setSelectionRect is unavailable',
+        'Main.screenshotUI._areaSelector._areaIndicator._selectionRect.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._topLeftHandle.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._topRightHandle.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._bottomLeftHandle.opacity is unavailable',
+        'Main.screenshotUI._areaSelector._bottomRightHandle.opacity is unavailable',
+        'Main.screenshotUI._captureButton.reactive is unavailable',
         'Main.screenshotUI._shotButton.checked is unavailable',
         'Main.screenshotUI._shotButton.connect is unavailable',
         'Main.screenshotUI._shotButton.disconnect is unavailable',
+        'Main.screenshotUI._selectionButton.checked is unavailable',
+        'Main.screenshotUI._selectionButton.connect is unavailable',
+        'Main.screenshotUI._selectionButton.disconnect is unavailable',
+        'Main.screenshotUI._screenButton.checked is unavailable',
+        'Main.screenshotUI._screenButton.connect is unavailable',
+        'Main.screenshotUI._screenButton.disconnect is unavailable',
+        'Main.screenshotUI._windowButton.checked is unavailable',
+        'Main.screenshotUI._windowButton.connect is unavailable',
+        'Main.screenshotUI._windowButton.disconnect is unavailable',
+        'Main.screenshotUI._screenSelectors is unavailable',
     ]);
 });

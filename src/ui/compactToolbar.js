@@ -52,9 +52,10 @@ export const CompactToolbar = GObject.registerClass({
         super._init({
             style_class: 'screenshot-ui-panel compact-capture-toolbar',
             accessible_name: 'Annotation tools',
-            x_align: Clutter.ActorAlign.CENTER,
+            x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.START,
-            y_expand: true,
+            x_expand: false,
+            y_expand: false,
             reactive: true,
             ...actorParams,
         });
