@@ -36,6 +36,9 @@ export function createOutputPlan({
     };
 
     if (cursor?.texture) {
+        const cursorScale = finitePositive(cursor.scale, 'Cursor scale');
+        const cursorWidth = finitePositive(cursor.width, 'Cursor width');
+        const cursorHeight = finitePositive(cursor.height, 'Cursor height');
         plan.cursor = Object.freeze({
             texture: cursor.texture,
             x: Math.round(
@@ -44,7 +47,10 @@ export function createOutputPlan({
             y: Math.round(
                 (finiteCoordinate(cursor.y, 'Cursor y') - y) * scale
             ),
-            scale: finitePositive(cursor.scale, 'Cursor scale'),
+            // Cogl accepts subpixel rectangle edges. Keep the exact native
+            // cursor scale instead of introducing a second rounding step.
+            width: cursorWidth * cursorScale * scale,
+            height: cursorHeight * cursorScale * scale,
         });
     }
 

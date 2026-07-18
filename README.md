@@ -42,6 +42,12 @@ insensitive until GNOME's asynchronous save settles and repeated save requests
 share that same operation. Single-touch drawing follows the initiating
 Clutter event sequence, so another finger cannot move, finish or cancel it.
 
+Pointer composition now follows GNOME's native Cogl offscreen-texture pattern.
+It no longer performs an intermediate PNG encode, texture readback or second
+pixel upload before handing annotated output back to GNOME. That temporary
+handoff and native cursor restoration live in a small fail-open bridge instead
+of the main ScreenshotUI adapter.
+
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.
 

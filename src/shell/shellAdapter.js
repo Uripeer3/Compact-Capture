@@ -18,6 +18,7 @@ import {
     transitionSelectionLifecycle,
 } from '../core/selectionLifecycle.js';
 import {SignalConnectionSet} from '../core/signalConnectionSet.js';
+import {AnnotatedOutputBridge} from './annotatedOutputBridge.js';
 import {createAnnotationOutput} from './outputRenderer.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
@@ -62,6 +63,7 @@ export class ScreenshotUiAdapter {
     #onSelectionChanged;
     #onSelectionStarted;
     #onShortcut;
+    #outputBridge;
     #screenshotUi;
     #screenshotUiPrototype;
     #screenSelectorConnections = new SignalConnectionSet({
@@ -99,6 +101,10 @@ export class ScreenshotUiAdapter {
         this.#onSelectionChanged = onSelectionChanged;
         this.#onShortcut = onShortcut;
         this.#prepareCapture = prepareCapture;
+        this.#outputBridge = new AnnotatedOutputBridge({
+            screenshotUi: this.#screenshotUi,
+            createOutput: createAnnotationOutput,
+        });
     }
 
     get active() {
@@ -607,13 +613,14 @@ export class ScreenshotUiAdapter {
             if (preparation.annotations.length === 0)
                 return await originalMethod.apply(screenshotUi, args);
 
-            return await this.#saveAnnotatedScreenshot(
+            return await this.#outputBridge.save({
                 screenshotUi,
                 originalMethod,
                 args,
-                preparation.annotations,
-                session
-            );
+                strokes: preparation.annotations,
+                selection: session.selection,
+                outputScale: session.outputScale,
+            });
         } finally {
             try {
                 preparation.release();
@@ -624,78 +631,6 @@ export class ScreenshotUiAdapter {
                 );
             }
         }
-    }
-
-    async #saveAnnotatedScreenshot(
-        screenshotUi,
-        originalMethod,
-        args,
-        strokes,
-        session
-    ) {
-        const cursor = this.#screenshotUi._cursor;
-        const originalCursor = {
-            content: cursor.content,
-            visible: cursor.visible,
-            opacity: cursor.opacity,
-            x: cursor.x,
-            y: cursor.y,
-            scale: Number.isFinite(this.#screenshotUi._cursorScale)
-                ? this.#screenshotUi._cursorScale
-                : 1,
-        };
-        let delegated = false;
-
-        try {
-            const cursorTexture = originalCursor.visible
-                ? originalCursor.content?.get_texture?.() ?? null
-                : null;
-            const output = await createAnnotationOutput({
-                strokes,
-                selection: session.selection,
-                outputScale: session.outputScale,
-                cursor: cursorTexture
-                    ? {
-                        texture: cursorTexture,
-                        x: originalCursor.x,
-                        y: originalCursor.y,
-                        scale: originalCursor.scale,
-                    }
-                    : null,
-            });
-
-            cursor.set_content(output.content);
-            cursor.set_position(output.x, output.y);
-            cursor.visible = true;
-            // The texture is an output-only bridge; do not flash it inside
-            // the still-open screenshot UI while GNOME encodes the image.
-            cursor.opacity = 0;
-            this.#screenshotUi._cursorScale = output.scale;
-
-            delegated = true;
-            return await originalMethod.apply(screenshotUi, args);
-        } catch (error) {
-            if (delegated)
-                throw error;
-
-            console.error(
-                'Compact Capture could not prepare annotated output; ' +
-                'using GNOME capture unchanged',
-                error
-            );
-            this.#restoreCursor(cursor, originalCursor);
-            return await originalMethod.apply(screenshotUi, args);
-        } finally {
-            this.#restoreCursor(cursor, originalCursor);
-        }
-    }
-
-    #restoreCursor(cursor, state) {
-        cursor.set_content(state.content);
-        cursor.set_position(state.x, state.y);
-        cursor.visible = state.visible;
-        cursor.opacity = state.opacity;
-        this.#screenshotUi._cursorScale = state.scale;
     }
 
     #enterEmptySelection() {

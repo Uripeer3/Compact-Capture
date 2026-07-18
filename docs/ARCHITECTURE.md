@@ -37,11 +37,15 @@ Compact Capture owns:
 - `core/keyboardShortcuts.js`: pure shortcut-to-action mapping.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
+- `core/textureCompositionPlan.js`: pure framebuffer-layer geometry and
+  resource accounting.
 - `core/selectionLifecycle.js`: explicit screenshot, capture and area-state
   transitions with reversible empty-selection effects.
 - `core/signalConnectionSet.js`: transactional session-scoped signal rebinding
   for Shell actors that GNOME recreates.
 - `shell/outputRenderer.js`: selection-sized transparent output texture.
+- `shell/annotatedOutputBridge.js`: fail-open native-save handoff and cursor
+  restoration.
 - `ui/annotationOverlay.js`: monitor-aware pointer and touch interaction.
 - `ui/annotationRenderCache.js`: scale-aware committed-stroke Cairo cache.
 - `ui/compactToolbar.js`: accessible Shell UI.
@@ -56,9 +60,11 @@ screenshot behaviour must continue unchanged.
 ## Adapter contract
 
 `shell/shellAdapter.js` is the only module allowed to import
-`Main.screenshotUI`, read one of its private fields or intercept one of its
-methods. It wraps `open()` and `_saveScreenshot()` on ScreenshotUI's direct
-prototype and observes the native `closed` and
+`Main.screenshotUI` or intercept one of its methods. The adapter and its narrow
+`shell/annotatedOutputBridge.js` collaborator are the only modules allowed to
+read ScreenshotUI private fields. The adapter wraps `open()` and
+`_saveScreenshot()` on ScreenshotUI's direct prototype and observes the native
+`closed` and
 screenshot/recording mode signals. Patching the prototype allows
 `InjectionManager` to restore the exact original ownership and method. The
 wrapper awaits and returns the original result; it does not catch, translate or
@@ -108,19 +114,29 @@ transparent Cairo surface sized to the selected output rather than the whole
 virtual desktop. The shared renderer draws in stage-logical coordinates at the
 native screenshot scale. GDK's supported `pixbuf_get_from_surface()` conversion
 then supplies the RGBA pixels to a Shell image texture; the extension does not
-read Cairo's private backing buffer. If GNOME's pointer option is active, the
-native cursor is folded into that texture first.
+read Cairo's private backing buffer. With the pointer disabled, that uploaded
+texture is handed to GNOME directly. With the pointer enabled, a Cogl
+offscreen framebuffer draws the annotation and native cursor textures into one
+new texture. The cursor rectangle is calculated in output pixels and clips at
+the selection boundary.
+
+This mirrors the offscreen-texture copy used by GNOME Shell itself when it
+freezes the native cursor. It performs no intermediate PNG encode and no
+texture readback. GNOME's final `composite_to_stream()` call remains the only
+readback and PNG encoding pass.
 
 `paint_to_content()` is deliberately not used for annotation output. Mutter
 exposes that method on `Meta.WindowActor` (and a separate variant on
 `Clutter.Stage`), not on a general `St.DrawingArea`.
 
-The adapter temporarily exposes this final texture through the cursor overlay
-arguments already consumed by GNOME's `captureScreenshot()` pipeline, invokes
-the original `_saveScreenshot()`, then restores the native cursor actor in a
-`finally` block. GNOME therefore still owns cropping, PNG encoding, clipboard
-MIME data, filename selection, lockdown policy, sound and notifications. No
-GNOME storage code is copied into the extension.
+The output bridge temporarily exposes this final texture through the cursor
+overlay arguments already consumed by GNOME's `captureScreenshot()` pipeline,
+invokes the original `_saveScreenshot()`, then restores the native cursor actor
+in a `finally` block. Preparation errors restore the cursor and delegate once
+to unchanged GNOME capture; errors from GNOME after delegation still propagate.
+GNOME therefore still owns cropping, PNG encoding, clipboard MIME data,
+filename selection, lockdown policy, sound and notifications. No GNOME storage
+code is copied into the extension.
 
 Before output preparation, the extension resolves the visible draft through
 its owning overlay, disables every annotation overlay and toolbar control, and

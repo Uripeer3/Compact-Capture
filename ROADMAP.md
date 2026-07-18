@@ -106,7 +106,7 @@ Status: merged.
 
 ### PR 10 — Atomic capture and input ownership
 
-Status: in progress.
+Status: merged.
 
 - Commit or cancel the visible draft before freezing one output snapshot.
 - Disable annotation input for the duration of native asynchronous capture and
@@ -116,6 +116,8 @@ Status: in progress.
   sequences.
 
 ### PR 11 — Cursor and output-bridge performance
+
+Status: in progress.
 
 - Replace the otherwise-unused PNG encoding pass in cursor composition with a
   supported raw-texture, Cairo or Cogl route.
