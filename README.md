@@ -16,8 +16,8 @@ starts empty with a short keyboard hint; annotation controls stay hidden until
 the native selection drag finishes. Freehand, rectangle, arrow and highlighter
 previews, undo, redo and clear now work. Conventional `Ctrl+Z`,
 `Ctrl+Shift+Z` and `Ctrl+Y` shortcuts are available while the annotation UI is
-active; `Esc` cancels only an active drawing gesture and otherwise remains
-GNOME's shortcut.
+active. Compact Capture does not intercept `Esc`; GNOME retains ownership of
+its screenshot-interface shortcut behaviour.
 
 Area and screen annotations are now composited into copied and saved
 screenshots through GNOME's native output path. Captures without annotations,

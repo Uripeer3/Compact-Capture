@@ -50,7 +50,7 @@ file histories.
 - `Enter` and `Space` activate the focused control.
 - `Ctrl+Z` undoes the most recent committed stroke.
 - `Ctrl+Shift+Z` and `Ctrl+Y` redo it.
-- `Esc` cancels an active stroke; otherwise GNOME retains the key.
+- `Esc` remains owned by GNOME's screenshot interface.
 - `Ctrl+C` remains GNOME's final copy path and includes annotations.
 
 The design must remain usable at 200% scaling and on narrow selections. The

@@ -127,13 +127,8 @@ The adapter translates ScreenshotUI key events into Shell-independent undo and
 redo actions. `Ctrl+Z` performs undo, while `Ctrl+Shift+Z` and `Ctrl+Y` perform
 redo. Unhandled keys, including GNOME's capture shortcuts, propagate unchanged.
 The key signal shares the adapter's existing transactional enable/disable
-lifecycle.
-
-During a drawing gesture only, the active overlay installs a captured-event
-handler on the stage so `Esc` can cancel the draft even while its pointer grab
-is active. The handler disconnects before the grab is released on commit,
-cancel or destruction. Outside an active gesture, Compact Capture has no Escape
-handler and GNOME retains its normal close behaviour.
+lifecycle. Compact Capture does not install an Escape handler; GNOME retains
+that key throughout the screenshot lifecycle.
 
 Placement is selection-aware: controls stay hidden during an area drag, prefer
 the space above or below the completed selection, and use the top of the

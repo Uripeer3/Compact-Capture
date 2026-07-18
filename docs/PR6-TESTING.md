@@ -15,11 +15,9 @@ Run these checks in a real GNOME 50 Wayland session after `npm test`,
 
 1. Draw two annotations and press `Ctrl+Z`, then `Ctrl+Shift+Z`.
 2. Repeat redo with `Ctrl+Y`.
-3. Begin a long stroke, press `Esc` before releasing the pointer and confirm the
-   draft disappears without removing the preceding committed stroke.
-4. With no gesture active, press `Esc` and confirm GNOME closes its screenshot
+3. With no gesture active, press `Esc` and confirm GNOME closes its screenshot
    interface normally.
-5. Confirm GNOME's area, screen, window, capture and copy shortcuts still work.
+4. Confirm GNOME's area, screen, window, capture and copy shortcuts still work.
 
 ## Hover hints
 

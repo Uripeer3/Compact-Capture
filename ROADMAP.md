@@ -61,7 +61,8 @@ markers, object selection and external export integrations are deferred.
 Status: in progress.
 
 - Add redo with deterministic history invalidation.
-- Add conventional undo/redo shortcuts and safe gesture cancellation.
+- Add conventional undo/redo shortcuts without intercepting unrelated GNOME
+  keys.
 - Make shortcut and signal cleanup follow the screenshot UI lifecycle.
 - Record the approved v0.1 design, scope and manual test contract.
 
