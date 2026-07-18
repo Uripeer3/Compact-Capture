@@ -44,7 +44,10 @@ Once the GNOME adapter lands, building the extension will additionally require
 
 ```sh
 ./build.sh
+gnome-extensions install --force dist/compact-capture@uripeer3.github.io.shell-extension.zip 
 ```
+
+After installation make sure to Log-Off and back on befor enabling the Extention.
 
 ## Licence and provenance
 
