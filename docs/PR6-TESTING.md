@@ -26,9 +26,11 @@ Run these checks in a real GNOME 50 Wayland session after `npm test`,
 2. Hover Undo with one annotation remaining, click it and keep the pointer in
    place; confirm the hint disappears when Undo becomes insensitive.
 3. Repeat with Clear and confirm no hint remains after the document is empty.
-4. Move rapidly across several controls and confirm at most one hint is visible
+4. Keep the pointer over Undo, Redo or Clear as it becomes insensitive and
+   confirm its hover, focus or pressed background does not remain highlighted.
+5. Move rapidly across several controls and confirm at most one hint is visible
    after the pointer stops.
-5. Close ScreenshotUI while a hint is visible and while a hint is still waiting
+6. Close ScreenshotUI while a hint is visible and while a hint is still waiting
    to open; confirm neither hint survives and no journal error is produced.
 
 ## Lifecycle and output

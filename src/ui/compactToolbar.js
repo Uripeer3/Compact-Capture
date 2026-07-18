@@ -216,6 +216,11 @@ export const CompactToolbar = GObject.registerClass({
     }
 
     _setButtonSensitivity(button, sensitive) {
+        if (button.reactive === sensitive &&
+            button.can_focus === sensitive) {
+            return;
+        }
+
         if (!sensitive)
             this._tooltipsByWidget.get(button)?.close();
         button.reactive = sensitive;
