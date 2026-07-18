@@ -79,11 +79,14 @@ annotation-side exception cannot prevent the native screenshot UI from working.
 An empty annotation document calls GNOME's original `_saveScreenshot()` with no
 intermediate work or state changes. Window capture remains on that same path.
 
-For an annotated area or screen capture, `shell/outputRenderer.js` creates one
-transparent texture sized to the selected output rather than the whole virtual
-desktop. The shared Cairo renderer draws in stage-logical coordinates at the
-native screenshot scale. If GNOME's pointer option is active, the native cursor
-is folded into that texture first.
+For an annotated area or screen capture, `shell/outputRenderer.js` mounts one
+ephemeral `St.DrawingArea` sized to the selected output rather than the whole
+virtual desktop. The shared Cairo renderer draws in stage-logical coordinates,
+then Clutter's supported `paint_to_content()` path produces the texture at the
+actor's native resource scale. The actor is removed synchronously before the
+next frame, so this preparation cannot flash a second overlay on screen. If
+GNOME's pointer option is active, the native cursor is folded into that texture
+first.
 
 The adapter temporarily exposes this final texture through the cursor overlay
 arguments already consumed by GNOME's `captureScreenshot()` pipeline, invokes

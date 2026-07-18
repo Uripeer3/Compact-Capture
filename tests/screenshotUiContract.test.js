@@ -154,6 +154,5 @@ test('reports every missing contract member instead of failing at first use', ()
         'Main.screenshotUI._cursor.x is unavailable',
         'Main.screenshotUI._cursor.y is unavailable',
         'Main.screenshotUI._cursor.opacity is unavailable',
-        'Main.screenshotUI._cursorScale is unavailable',
     ]);
 });

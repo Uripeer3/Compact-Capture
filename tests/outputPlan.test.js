@@ -8,7 +8,8 @@ import {createOutputPlan} from '../src/core/outputPlan.js';
 test('creates a selection-sized output texture at screenshot scale', () => {
     assert.deepEqual(createOutputPlan({
         selection: {x: 100, y: 50, width: 640, height: 360},
-        outputScale: 2,
+        textureWidth: 1280,
+        textureHeight: 720,
     }), {
         originX: 100,
         originY: 50,
@@ -16,7 +17,7 @@ test('creates a selection-sized output texture at screenshot scale', () => {
         logicalHeight: 360,
         pixelWidth: 1280,
         pixelHeight: 720,
-        outputScale: 2,
+        textureScale: 2,
         overlayScale: 0.5,
         cursor: null,
     });
@@ -26,7 +27,8 @@ test('places the native pointer relative to the selected output', () => {
     const texture = {};
     const plan = createOutputPlan({
         selection: {x: 1920, y: 100, width: 1280, height: 720},
-        outputScale: 1.5,
+        textureWidth: 1920,
+        textureHeight: 1080,
         cursor: {texture, x: 2000, y: 140, scale: 0.5},
     });
 
@@ -43,10 +45,20 @@ test('places the native pointer relative to the selected output', () => {
 test('rejects malformed geometry and scales', () => {
     assert.throws(() => createOutputPlan({
         selection: {x: 0, y: 0, width: 0, height: 100},
-        outputScale: 1,
+        textureWidth: 100,
+        textureHeight: 100,
     }));
     assert.throws(() => createOutputPlan({
         selection: {x: 0, y: 0, width: 100, height: 100},
-        outputScale: 0,
+        textureWidth: 0,
+        textureHeight: 100,
     }));
+});
+
+test('rejects a painted texture with a non-uniform resource scale', () => {
+    assert.throws(() => createOutputPlan({
+        selection: {x: 0, y: 0, width: 100, height: 100},
+        textureWidth: 200,
+        textureHeight: 100,
+    }), /uniform resource scale/);
 });

@@ -149,11 +149,6 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
             if (!Number.isFinite(cursor?.[field]))
                 issues.push(`Main.screenshotUI._cursor.${field} is unavailable`);
         }
-        if (!Number.isFinite(screenshotUi._cursorScale)) {
-            issues.push(
-                'Main.screenshotUI._cursorScale is unavailable'
-            );
-        }
     }
 
     return Object.freeze({

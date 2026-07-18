@@ -1,39 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-import Cairo from 'gi://cairo';
 import Cogl from 'gi://Cogl';
 import Gio from 'gi://Gio';
-import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import {renderAnnotations} from '../core/annotationRenderer.js';
 import {createOutputPlan} from '../core/outputPlan.js';
 
-const LITTLE_ENDIAN = new Uint8Array(
-    new Uint32Array([0x01020304]).buffer
-)[0] === 0x04;
-const CAIRO_ARGB32_PIXEL_FORMAT = LITTLE_ENDIAN
-    ? Cogl.PixelFormat.BGRA_8888_PRE
-    : Cogl.PixelFormat.ARGB_8888_PRE;
-
 function coglContext() {
     return global.stage.context.get_backend().get_cogl_context();
-}
-
-function contentFromSurface(surface, width, height) {
-    surface.flush();
-    const bytes = GLib.Bytes.new(surface.getData());
-    const content = St.ImageContent.new_with_preferred_size(width, height);
-    content.set_bytes(
-        coglContext(),
-        bytes,
-        CAIRO_ARGB32_PIXEL_FORMAT,
-        width,
-        height,
-        surface.getStride()
-    );
-    return content;
 }
 
 function contentFromPixbuf(pixbuf) {
@@ -64,7 +41,7 @@ async function addCursor(content, plan) {
             0,
             -1,
             -1,
-            plan.outputScale,
+            plan.textureScale,
             plan.cursor.texture,
             plan.cursor.x,
             plan.cursor.y,
@@ -77,41 +54,55 @@ async function addCursor(content, plan) {
     }
 }
 
-export async function createAnnotationOutput({
-    strokes,
-    selection,
-    outputScale,
-    cursor = null,
-}) {
-    const plan = createOutputPlan({selection, outputScale, cursor});
-    const surface = new Cairo.ImageSurface(
-        Cairo.Format.ARGB32,
-        plan.pixelWidth,
-        plan.pixelHeight
-    );
-    const cr = new Cairo.Context(surface);
+export const AnnotationOutputActor = GObject.registerClass(
+class AnnotationOutputActor extends St.DrawingArea {
+    _init({strokes, selection}) {
+        super._init({
+            reactive: false,
+            can_focus: false,
+            x_expand: false,
+            y_expand: false,
+        });
+        this._strokes = strokes;
+        this._selection = selection;
+        this.set_position(selection.x, selection.y);
+        this.set_size(selection.width, selection.height);
+    }
 
-    try {
-        cr.scale(plan.outputScale, plan.outputScale);
-        cr.translate(-plan.originX, -plan.originY);
-        renderAnnotations(cr, strokes);
-    } finally {
+    captureContent() {
+        const content = this.paint_to_content(null);
+        if (!content?.get_texture?.())
+            throw new Error('Clutter could not paint the annotation texture');
+        return content;
+    }
+
+    vfunc_repaint() {
+        const cr = this.get_context();
+        cr.translate(-this._selection.x, -this._selection.y);
+        renderAnnotations(cr, this._strokes);
         cr.$dispose();
     }
+});
 
-    try {
-        const content = contentFromSurface(
-            surface,
-            plan.pixelWidth,
-            plan.pixelHeight
-        );
-        return Object.freeze({
-            content: await addCursor(content, plan),
-            x: plan.originX,
-            y: plan.originY,
-            scale: plan.overlayScale,
-        });
-    } finally {
-        surface.finish();
-    }
+export async function createAnnotationOutput({
+    content,
+    selection,
+    cursor = null,
+}) {
+    const texture = content?.get_texture?.();
+    if (!texture)
+        throw new Error('Annotation content has no texture');
+
+    const plan = createOutputPlan({
+        selection,
+        textureWidth: texture.get_width(),
+        textureHeight: texture.get_height(),
+        cursor,
+    });
+    return Object.freeze({
+        content: await addCursor(content, plan),
+        x: plan.originX,
+        y: plan.originY,
+        scale: plan.overlayScale,
+    });
 }

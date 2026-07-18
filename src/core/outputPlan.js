@@ -12,21 +12,37 @@ function finiteCoordinate(value, name) {
     return value;
 }
 
-export function createOutputPlan({selection, outputScale, cursor = null}) {
-    const scale = finitePositive(outputScale, 'Output scale');
+export function createOutputPlan({
+    selection,
+    textureWidth,
+    textureHeight,
+    cursor = null,
+}) {
     const x = finiteCoordinate(selection?.x, 'Selection x');
     const y = finiteCoordinate(selection?.y, 'Selection y');
     const width = finitePositive(selection?.width, 'Selection width');
     const height = finitePositive(selection?.height, 'Selection height');
+    const pixelWidth = finitePositive(textureWidth, 'Texture width');
+    const pixelHeight = finitePositive(textureHeight, 'Texture height');
+    const horizontalScale = pixelWidth / width;
+    const verticalScale = pixelHeight / height;
+
+    if (Math.abs(horizontalScale - verticalScale) > 0.01) {
+        throw new RangeError(
+            'Output texture must use one uniform resource scale'
+        );
+    }
+
+    const scale = (horizontalScale + verticalScale) / 2;
 
     const plan = {
         originX: x,
         originY: y,
         logicalWidth: width,
         logicalHeight: height,
-        pixelWidth: Math.max(1, Math.round(width * scale)),
-        pixelHeight: Math.max(1, Math.round(height * scale)),
-        outputScale: scale,
+        pixelWidth,
+        pixelHeight,
+        textureScale: scale,
         overlayScale: 1 / scale,
         cursor: null,
     };

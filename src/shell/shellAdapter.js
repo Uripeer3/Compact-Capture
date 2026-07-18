@@ -6,7 +6,10 @@ import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import {createAnnotationOutput} from './outputRenderer.js';
+import {
+    AnnotationOutputActor,
+    createAnnotationOutput,
+} from './outputRenderer.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
 const EMPTY_SELECTION_COORDINATE = -1_000_000;
@@ -563,7 +566,9 @@ export class ScreenshotUiAdapter {
             opacity: cursor.opacity,
             x: cursor.x,
             y: cursor.y,
-            scale: this.#screenshotUi._cursorScale,
+            scale: Number.isFinite(this.#screenshotUi._cursorScale)
+                ? this.#screenshotUi._cursorScale
+                : 1,
         };
         let delegated = false;
 
@@ -571,10 +576,26 @@ export class ScreenshotUiAdapter {
             const cursorTexture = originalCursor.visible
                 ? originalCursor.content?.get_texture?.() ?? null
                 : null;
-            const output = await createAnnotationOutput({
+            const outputActor = new AnnotationOutputActor({
                 strokes,
                 selection: session.selection,
-                outputScale: session.outputScale,
+            });
+            if (!this.mountOverlay(outputActor)) {
+                outputActor.destroy();
+                throw new Error('Could not mount the annotation output actor');
+            }
+
+            let content;
+            try {
+                content = outputActor.captureContent();
+            } finally {
+                this.unmountOverlay(outputActor);
+                outputActor.destroy();
+            }
+
+            const output = await createAnnotationOutput({
+                content,
+                selection: session.selection,
                 cursor: cursorTexture
                     ? {
                         texture: cursorTexture,
