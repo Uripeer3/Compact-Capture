@@ -1,9 +1,9 @@
 # Version 0.1 design contract
 
-The editable reference mockup is available in
-[Figma](https://www.figma.com/design/SzZ1zc2REDhLXpgtu9fJLJ?node-id=3-2).
-It is informed by KDE Spectacle's compact annotation workflow while using GNOME
-Shell visual language, symbolic artwork and existing capture controls.
+Compact Capture preserves GNOME Shell's native screenshot interface and adds
+only the annotation toolbar and its behavior. KDE Spectacle informs the compact
+annotation workflow, while GNOME continues to define the surrounding visual
+language, capture controls and interaction model.
 
 ## Workflow
 
