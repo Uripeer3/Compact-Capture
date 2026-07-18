@@ -11,7 +11,10 @@ import {
     createTextureCompositionPlan,
 } from '../core/textureCompositionPlan.js';
 import {Tool} from '../core/toolDefinitions.js';
-import {drawObscureRegion} from './obscureRenderer.js';
+import {
+    contentFromTexture,
+    drawObscureRegion,
+} from './obscureRenderer.js';
 
 function coglContext() {
     return global.stage.context.get_backend().get_cogl_context();
@@ -95,7 +98,7 @@ function composeOutput({
         );
     }
 
-    return Clutter.TextureContent.new_from_texture(texture);
+    return contentFromTexture(texture);
 }
 
 export function createAnnotationOutput({

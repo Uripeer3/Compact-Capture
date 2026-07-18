@@ -17,6 +17,12 @@ function pipelineFilter(filter) {
         : Cogl.PipelineFilter.LINEAR;
 }
 
+export function contentFromTexture(texture) {
+    // The second argument is an optional source rectangle. GJS still requires
+    // it to be passed explicitly even when the whole texture is used.
+    return Clutter.TextureContent.new_from_texture(texture, null);
+}
+
 function sampleSource(sourceTexture, plan) {
     const context = coglContext();
     const texture = Cogl.Texture2D.new_with_size(
@@ -71,9 +77,7 @@ export function createObscurePreview({
         return null;
 
     return Object.freeze({
-        content: Clutter.TextureContent.new_from_texture(
-            sampleSource(sourceTexture, plan)
-        ),
+        content: contentFromTexture(sampleSource(sourceTexture, plan)),
         logicalRect: plan.logicalRect,
         scalingFilter: plan.filter === 'nearest'
             ? Clutter.ScalingFilter.NEAREST
