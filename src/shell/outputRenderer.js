@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+import Cairo from 'gi://cairo';
 import Cogl from 'gi://Cogl';
 import Gio from 'gi://Gio';
-import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
@@ -54,55 +54,54 @@ async function addCursor(content, plan) {
     }
 }
 
-export const AnnotationOutputActor = GObject.registerClass(
-class AnnotationOutputActor extends St.DrawingArea {
-    _init({strokes, selection}) {
-        super._init({
-            reactive: false,
-            can_focus: false,
-            x_expand: false,
-            y_expand: false,
-        });
-        this._strokes = strokes;
-        this._selection = selection;
-        this.set_position(selection.x, selection.y);
-        this.set_size(selection.width, selection.height);
-    }
-
-    captureContent() {
-        const content = this.paint_to_content(null);
-        if (!content?.get_texture?.())
-            throw new Error('Clutter could not paint the annotation texture');
-        return content;
-    }
-
-    vfunc_repaint() {
-        const cr = this.get_context();
-        cr.translate(-this._selection.x, -this._selection.y);
-        renderAnnotations(cr, this._strokes);
-        cr.$dispose();
-    }
-});
-
 export async function createAnnotationOutput({
-    content,
+    strokes,
     selection,
+    outputScale,
     cursor = null,
 }) {
-    const texture = content?.get_texture?.();
-    if (!texture)
-        throw new Error('Annotation content has no texture');
-
     const plan = createOutputPlan({
         selection,
-        textureWidth: texture.get_width(),
-        textureHeight: texture.get_height(),
+        outputScale,
         cursor,
     });
-    return Object.freeze({
-        content: await addCursor(content, plan),
-        x: plan.originX,
-        y: plan.originY,
-        scale: plan.overlayScale,
-    });
+    const surface = new Cairo.ImageSurface(
+        Cairo.Format.ARGB32,
+        plan.pixelWidth,
+        plan.pixelHeight
+    );
+    const cr = new Cairo.Context(surface);
+
+    try {
+        cr.scale(plan.textureScale, plan.textureScale);
+        cr.translate(-plan.originX, -plan.originY);
+        renderAnnotations(cr, strokes);
+    } finally {
+        cr.$dispose();
+    }
+
+    try {
+        surface.flush();
+        // paint_to_content() belongs to Meta.WindowActor and Clutter.Stage,
+        // not St.DrawingArea. GDK exposes Cairo's supported pixel conversion.
+        const pixbuf = imports.gi.Gdk.pixbuf_get_from_surface(
+            surface,
+            0,
+            0,
+            plan.pixelWidth,
+            plan.pixelHeight
+        );
+        if (!pixbuf)
+            throw new Error('GDK could not convert the annotation surface');
+
+        const content = contentFromPixbuf(pixbuf);
+        return Object.freeze({
+            content: await addCursor(content, plan),
+            x: plan.originX,
+            y: plan.originY,
+            scale: plan.overlayScale,
+        });
+    } finally {
+        surface.finish();
+    }
 }
