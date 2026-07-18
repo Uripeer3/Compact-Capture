@@ -9,6 +9,7 @@ import {
     placeToolbar,
 } from './core/geometry.js';
 import {ShortcutAction} from './core/keyboardShortcuts.js';
+import {AreaState, CaptureType} from './core/selectionLifecycle.js';
 import {ToolbarState} from './core/toolbarState.js';
 import {ScreenshotUiAdapter} from './shell/shellAdapter.js';
 import {AnnotationOverlay} from './ui/annotationOverlay.js';
@@ -25,32 +26,25 @@ export default class CompactCaptureExtension extends Extension {
         this._selectionHint = null;
         this._overlays = [];
         this._session = null;
-        this._awaitingAreaSelection = true;
 
         this._shellAdapter = new ScreenshotUiAdapter({
             onOpened: session => {
                 this._document.clear();
-                this._awaitingAreaSelection =
-                    session.captureType === 'selection';
                 this._refreshSession(session);
             },
             onModeChanged: session => this._refreshSession(session),
             onCaptureChanged: session => {
                 this._document.clear();
-                this._awaitingAreaSelection =
-                    session.captureType === 'selection';
                 this._refreshSession(session);
             },
             onSelectionStarted: () => {
                 this._document.clear();
-                this._awaitingAreaSelection = true;
                 this._hideAnnotationUi();
                 this._hideSelectionHint();
             },
             onSelectionChanged: session => {
-                if (session.captureType !== 'selection')
+                if (session.captureType !== CaptureType.SELECTION)
                     return;
-                this._awaitingAreaSelection = false;
                 this._refreshSession(session);
             },
             onShortcut: action => this._handleShortcut(action),
@@ -60,7 +54,6 @@ export default class CompactCaptureExtension extends Extension {
                 this._hideSelectionHint();
                 this._document.clear();
                 this._session = null;
-                this._awaitingAreaSelection = true;
             },
         });
         this._shellAdapter.enable();
@@ -80,14 +73,12 @@ export default class CompactCaptureExtension extends Extension {
 
     _refreshSession(session) {
         this._session = session;
-        if (session.captureType === 'selection' && !session.selection)
-            this._awaitingAreaSelection = true;
 
         const supported = session.isScreenshot &&
-            session.captureType !== 'window' &&
+            session.captureType !== CaptureType.WINDOW &&
             session.selection !== null;
-        const waiting = session.captureType === 'selection' &&
-            this._awaitingAreaSelection;
+        const waiting = session.captureType === CaptureType.SELECTION &&
+            session.areaState !== AreaState.SELECTED;
 
         if (!supported || waiting) {
             this._hideAnnotationUi();

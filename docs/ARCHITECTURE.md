@@ -33,6 +33,10 @@ Compact Capture owns:
 - `core/keyboardShortcuts.js`: pure shortcut-to-action mapping.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
+- `core/selectionLifecycle.js`: explicit screenshot, capture and area-state
+  transitions with reversible empty-selection effects.
+- `core/signalConnectionSet.js`: transactional session-scoped signal rebinding
+  for Shell actors that GNOME recreates.
 - `shell/outputRenderer.js`: selection-sized transparent output texture.
 - `ui/annotationOverlay.js`: monitor-aware pointer and touch interaction.
 - `ui/annotationRenderCache.js`: scale-aware committed-stroke Cairo cache.
@@ -59,7 +63,7 @@ replace native capture errors.
 The adapter translates private Shell details into narrow, immutable session
 data and actor operations:
 
-- screenshot/recording and capture-type state;
+- screenshot/recording, capture-type and area-selection state;
 - selection and monitor geometry in stage-logical coordinates;
 - selection drag lifecycle events;
 - a reversible empty-selection gate for area mode;
@@ -67,6 +71,20 @@ data and actor operations:
 
 The toolbar and extension controller never receive the ScreenshotUI object,
 capture buttons or monitor bin themselves.
+
+`core/selectionLifecycle.js` is the source of truth for whether area mode is
+inactive, empty, being dragged or selected. The model records an initially
+empty area even when ScreenshotUI opens directly in recording mode, but applies
+the visual empty-selection gate only in screenshot mode. Returning to
+screenshots therefore cannot expose GNOME's untouched default rectangle as a
+completed Compact Capture selection. A region explicitly dragged while
+recording remains selected when returning to screenshots.
+
+GNOME recreates its private screen-selector actors after a monitor change.
+Their signals are therefore session-scoped: the adapter disconnects them on
+close and binds the current `_screenSelectors` after every successful `open()`.
+Static ScreenshotUI and capture-button signals retain the adapter's full
+enable/disable lifetime.
 
 The adapter is enabled only for an explicitly supported GNOME major version and
 after its required methods have been inspected. Installation is transactional:
@@ -143,6 +161,10 @@ shortcuts are gated while no area exists. The adapter restores the selector on
 the first native drag, when leaving area mode, and during disable/close cleanup.
 This keeps the empty state reversible and leaves GNOME's selector implementation
 responsible for the actual drag, resize and geometry rules.
+
+The immutable session snapshot includes this explicit area state. The extension
+uses it instead of maintaining a second waiting-for-selection boolean, keeping
+the hint, capture gate and annotation actors on the same transition path.
 
 While area mode is empty, a non-reactive hint on the primary monitor explains
 the native keyboard route: drag an area, or press `C` and then `Enter` for a
