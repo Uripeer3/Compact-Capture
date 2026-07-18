@@ -19,6 +19,7 @@ function cloneStroke(stroke) {
 }
 
 export class AnnotationDocument {
+    #redoStrokes = [];
     #strokes = [];
     #draft = null;
 
@@ -32,6 +33,14 @@ export class AnnotationDocument {
 
     get isDrawing() {
         return this.#draft !== null;
+    }
+
+    get canUndo() {
+        return this.#draft !== null || this.#strokes.length > 0;
+    }
+
+    get canRedo() {
+        return this.#draft === null && this.#redoStrokes.length > 0;
     }
 
     beginStroke({tool, color, width, point}) {
@@ -79,6 +88,7 @@ export class AnnotationDocument {
 
         if (this.#draft.points.length >= 2) {
             this.#strokes.push(this.#draft);
+            this.#redoStrokes = [];
             this.#draft = null;
             return true;
         }
@@ -92,12 +102,35 @@ export class AnnotationDocument {
     }
 
     undo() {
-        return this.#strokes.pop() !== undefined;
+        if (this.#draft) {
+            this.#draft = null;
+            return true;
+        }
+
+        const stroke = this.#strokes.pop();
+        if (!stroke)
+            return false;
+
+        this.#redoStrokes.push(stroke);
+        return true;
+    }
+
+    redo() {
+        if (this.#draft)
+            return false;
+
+        const stroke = this.#redoStrokes.pop();
+        if (!stroke)
+            return false;
+
+        this.#strokes.push(stroke);
+        return true;
     }
 
     clear() {
         this.#draft = null;
         this.#strokes = [];
+        this.#redoStrokes = [];
     }
 
     snapshot({includeDraft = false} = {}) {

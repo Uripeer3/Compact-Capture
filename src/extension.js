@@ -8,6 +8,7 @@ import {
     monitorForRect,
     placeToolbar,
 } from './core/geometry.js';
+import {ShortcutAction} from './core/keyboardShortcuts.js';
 import {ToolbarState} from './core/toolbarState.js';
 import {ScreenshotUiAdapter} from './shell/shellAdapter.js';
 import {AnnotationOverlay} from './ui/annotationOverlay.js';
@@ -52,6 +53,7 @@ export default class CompactCaptureExtension extends Extension {
                 this._awaitingAreaSelection = false;
                 this._refreshSession(session);
             },
+            onShortcut: action => this._handleShortcut(action),
             getAnnotations: () => this._document.snapshot(),
             onClosed: () => {
                 this._hideAnnotationUi();
@@ -118,12 +120,13 @@ export default class CompactCaptureExtension extends Extension {
             extensionPath: this.path,
         });
         toolbar.connect('undo', () => {
-            this._document.undo();
-            this._repaintOverlays();
+            this._undo();
+        });
+        toolbar.connect('redo', () => {
+            this._redo();
         });
         toolbar.connect('clear', () => {
-            this._document.clear();
-            this._repaintOverlays();
+            this._clear();
         });
 
         if (!this._shellAdapter.mountToolbar(toolbar)) {
@@ -210,8 +213,61 @@ export default class CompactCaptureExtension extends Extension {
 
     _syncToolbarActions() {
         this._toolbar?.setActionSensitivity({
-            canUndo: this._document.hasAnnotations,
-            canClear: this._document.hasAnnotations,
+            canUndo: this._document.canUndo,
+            canRedo: this._document.canRedo,
+            canClear: this._document.hasAnnotations ||
+                this._document.isDrawing,
         });
+    }
+
+    _handleShortcut(action) {
+        let handled = false;
+        if (action === ShortcutAction.UNDO)
+            handled = this._undo();
+        else if (action === ShortcutAction.REDO)
+            handled = this._redo();
+        else if (action === ShortcutAction.CANCEL_GESTURE &&
+            this._document.isDrawing) {
+            this._cancelActiveGestures();
+            this._repaintOverlays();
+            handled = true;
+        }
+        return handled;
+    }
+
+    _undo() {
+        let changed;
+        if (this._document.isDrawing) {
+            this._cancelActiveGestures();
+            changed = true;
+        } else {
+            changed = this._document.undo();
+        }
+
+        if (changed)
+            this._repaintOverlays();
+        return changed;
+    }
+
+    _redo() {
+        const changed = this._document.redo();
+        if (changed)
+            this._repaintOverlays();
+        return changed;
+    }
+
+    _clear() {
+        const changed = this._document.hasAnnotations ||
+            this._document.isDrawing;
+        this._cancelActiveGestures();
+        this._document.clear();
+        if (changed)
+            this._repaintOverlays();
+        return changed;
+    }
+
+    _cancelActiveGestures() {
+        for (const overlay of this._overlays)
+            overlay.cancelGesture();
     }
 }

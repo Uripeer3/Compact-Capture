@@ -39,6 +39,7 @@ export const CompactToolbar = GObject.registerClass({
         'color-changed': {param_types: [GObject.TYPE_STRING]},
         'line-width-changed': {param_types: [GObject.TYPE_DOUBLE]},
         undo: {},
+        redo: {},
         clear: {},
     },
 }, class CompactToolbar extends St.BoxLayout {
@@ -76,7 +77,11 @@ export const CompactToolbar = GObject.registerClass({
 
         this._syncToolButtons();
         this._syncColorButtons();
-        this.setActionSensitivity({canUndo: false, canClear: false});
+        this.setActionSensitivity({
+            canUndo: false,
+            canRedo: false,
+            canClear: false,
+        });
         this.connect('destroy', () => this._destroyTooltips());
     }
 
@@ -96,9 +101,11 @@ export const CompactToolbar = GObject.registerClass({
         return [...this._tooltips];
     }
 
-    setActionSensitivity({canUndo, canClear}) {
+    setActionSensitivity({canUndo, canRedo, canClear}) {
         this._undoButton.reactive = canUndo;
         this._undoButton.can_focus = canUndo;
+        this._redoButton.reactive = canRedo;
+        this._redoButton.can_focus = canRedo;
         this._clearButton.reactive = canClear;
         this._clearButton.can_focus = canClear;
     }
@@ -169,6 +176,11 @@ export const CompactToolbar = GObject.registerClass({
             'edit-undo-symbolic',
             'Undo',
             () => this.emit('undo')
+        );
+        this._redoButton = this._createActionButton(
+            'edit-redo-symbolic',
+            'Redo',
+            () => this.emit('redo')
         );
         this._clearButton = this._createActionButton(
             'edit-clear-all-symbolic',
