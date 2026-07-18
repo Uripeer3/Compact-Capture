@@ -13,9 +13,12 @@ function setColor(cr, color, alpha = 1) {
 }
 
 function drawPolyline(cr, points) {
-    cr.moveTo(points[0].x, points[0].y);
-    for (const point of points.slice(1))
+    const first = points.at(0);
+    cr.moveTo(first.x, first.y);
+    for (let index = 1; index < points.length; index++) {
+        const point = points.at(index);
         cr.lineTo(point.x, point.y);
+    }
 }
 
 function drawFreehand(cr, stroke) {
@@ -28,7 +31,7 @@ function drawFreehand(cr, stroke) {
 }
 
 function drawRectangle(cr, stroke) {
-    const start = stroke.points[0];
+    const start = stroke.points.at(0);
     const end = stroke.points.at(-1);
     setColor(cr, stroke.color);
     cr.setLineWidth(stroke.width);
@@ -42,7 +45,7 @@ function drawRectangle(cr, stroke) {
 }
 
 function drawArrow(cr, stroke) {
-    const start = stroke.points[0];
+    const start = stroke.points.at(0);
     const end = stroke.points.at(-1);
     const angle = Math.atan2(end.y - start.y, end.x - start.x);
     const spread = Math.PI / 7;
@@ -82,10 +85,13 @@ const DRAWERS = new Map([
     [Tool.HIGHLIGHTER, drawHighlighter],
 ]);
 
+export function renderAnnotation(cr, stroke) {
+    if (stroke.points.length < 2)
+        return;
+    DRAWERS.get(stroke.tool)?.(cr, stroke);
+}
+
 export function renderAnnotations(cr, strokes) {
-    for (const stroke of strokes) {
-        if (stroke.points.length < 2)
-            continue;
-        DRAWERS.get(stroke.tool)?.(cr, stroke);
-    }
+    for (const stroke of strokes)
+        renderAnnotation(cr, stroke);
 }

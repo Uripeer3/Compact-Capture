@@ -68,7 +68,7 @@ Status: merged.
 
 ### PR 7 — GNOME visual and accessibility polish
 
-Status: in progress.
+Status: merged.
 
 - Implement the approved compact spacing and state treatment from the design
   specification.
@@ -81,6 +81,8 @@ Status: in progress.
 - Apply and remember each tool's own line-width default.
 
 ### PR 8 — Bounded live rendering
+
+Status: in progress.
 
 - Remove deep document snapshots and avoidable point-array allocations from
   the pointer-motion repaint path.

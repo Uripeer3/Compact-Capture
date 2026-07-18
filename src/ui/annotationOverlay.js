@@ -4,13 +4,14 @@ import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
-import {renderAnnotations} from '../core/annotationRenderer.js';
+import {renderAnnotation} from '../core/annotationRenderer.js';
 import {
     DEFAULT_SAMPLE_DISTANCE,
     MAX_STROKE_POINTS,
     shouldSamplePoint,
 } from '../core/pointSampler.js';
 import {Tool} from '../core/toolDefinitions.js';
+import {AnnotationRenderCache} from './annotationRenderCache.js';
 
 const FREEFORM_TOOLS = new Set([Tool.FREEHAND, Tool.HIGHLIGHTER]);
 
@@ -51,10 +52,14 @@ class AnnotationOverlay extends St.DrawingArea {
         this._lastPoint = null;
         this._pointCount = 0;
         this._activeTool = null;
+        this._renderCache = new AnnotationRenderCache(stageRect);
 
         this.set_position(stageRect.x, stageRect.y);
         this.set_size(stageRect.width, stageRect.height);
-        this.connect('destroy', () => this.cancelGesture());
+        this.connect('destroy', () => {
+            this.cancelGesture();
+            this._renderCache.destroy();
+        });
     }
 
     cancelGesture() {
@@ -125,25 +130,33 @@ class AnnotationOverlay extends St.DrawingArea {
 
     vfunc_repaint() {
         const cr = this.get_context();
-        cr.save();
-        cr.translate(-this._stageRect.x, -this._stageRect.y);
-        renderAnnotations(
-            cr,
-            this._document.snapshot({includeDraft: true})
-        );
-        cr.restore();
-        cr.$dispose();
+        try {
+            const view = this._document.renderView();
+            this._renderCache.paint(cr, view, this.get_resource_scale());
+
+            if (view.draft) {
+                cr.save();
+                cr.translate(-this._stageRect.x, -this._stageRect.y);
+                renderAnnotation(cr, view.draft);
+                cr.restore();
+            }
+        } finally {
+            cr.$dispose();
+        }
     }
 
     _beginGesture([x, y]) {
         const style = this._toolbarState.snapshot();
         const point = {x, y};
-        this._document.beginStroke({
+        const started = this._document.beginStroke({
             tool: style.tool,
             color: style.color,
             width: style.lineWidth,
             point,
         });
+        if (!started)
+            return;
+
         this._drawing = true;
         this._activeTool = style.tool;
         this._lastPoint = point;
@@ -174,9 +187,10 @@ class AnnotationOverlay extends St.DrawingArea {
             return;
         }
 
-        if (this._pointCount < MAX_STROKE_POINTS) {
-            this._document.appendPoint(point);
-            this._pointCount++;
+        if (this._pointCount < MAX_STROKE_POINTS &&
+            this._document.canAppendPoint) {
+            if (this._document.appendPoint(point))
+                this._pointCount++;
         } else {
             this._document.replaceEndPoint(point);
         }

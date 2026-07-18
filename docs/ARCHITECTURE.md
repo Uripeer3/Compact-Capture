@@ -35,6 +35,7 @@ Compact Capture owns:
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
 - `shell/outputRenderer.js`: selection-sized transparent output texture.
 - `ui/annotationOverlay.js`: monitor-aware pointer and touch interaction.
+- `ui/annotationRenderCache.js`: scale-aware committed-stroke Cairo cache.
 - `ui/compactToolbar.js`: accessible Shell UI.
 
 GNOME-required entry files remain at the source root. Shell-independent state
@@ -171,8 +172,24 @@ handles. Starting a native selection drag removes the overlays and controls,
 then rebuilds them from the completed geometry.
 
 Freehand input is sampled at a two-logical-pixel threshold and capped at 4096
-points per gesture. Repaint requests are coalesced by Clutter, and rendering
-work therefore remains bounded even on long strokes. Coordinate conversion and
+points per gesture. The complete document, including undo/redo history and an
+active draft, is capped at 65,536 points and 1024 strokes. A gesture that
+reaches the point budget keeps replacing its final point, while a new gesture
+is refused when the document cannot reserve two points.
+
+Overlay repainting uses one revisioned, read-only document view shared by all
+monitor actors. Committed strokes and points are frozen; only the active
+draft's private point storage changes during pointer motion. Each overlay
+rasterizes committed strokes into a Cairo image surface once per committed
+revision and resource scale, then paints only the active draft on live updates.
+The resource scale is read during the Clutter paint cycle and applied as the
+Cairo device scale, preserving 100%, 200% and mixed-monitor sharpness. Undo,
+redo, clear and scale changes invalidate the relevant cache deterministically.
+
+The deep isolated `snapshot()` remains available only at the final output
+boundary, where capture correctness matters more than a one-time allocation.
+`npm run benchmark` exercises that boundary at the production point budget and
+compares it with repeated shared render-view lookup. Coordinate conversion and
 toolbar placement rules live in `core/geometry.js` and are covered by Node
 tests, including secondary-monitor and mixed-output-scale examples.
 

@@ -3,7 +3,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {AnnotationDocument} from '../src/core/annotationDocument.js';
+import {
+    AnnotationDocument,
+    MAX_DOCUMENT_POINTS,
+    MAX_DOCUMENT_STROKES,
+} from '../src/core/annotationDocument.js';
 import {Tool} from '../src/core/toolDefinitions.js';
 
 const validStroke = {
@@ -120,4 +124,102 @@ test('rejects invalid tool, style and coordinate input', () => {
     assert.throws(() => document.beginStroke({...validStroke, color: 'red'}));
     assert.throws(() => document.beginStroke({...validStroke, width: 0}));
     assert.throws(() => document.beginStroke({...validStroke, point: {x: NaN, y: 1}}));
+});
+
+test('shares a revisioned read-only render view without deep copies', () => {
+    const document = new AnnotationDocument();
+    const emptyView = document.renderView();
+    assert.strictEqual(document.renderView(), emptyView);
+    assert.ok(Object.isFrozen(emptyView));
+    assert.ok(Object.isFrozen(emptyView.committed));
+
+    document.beginStroke(validStroke);
+    const firstDraftView = document.renderView();
+    const firstPointSequence = firstDraftView.draft.points;
+    assert.equal(firstPointSequence.length, 1);
+    assert.equal(firstPointSequence.push, undefined);
+    assert.ok(Object.isFrozen(firstDraftView.draft));
+
+    document.appendPoint({x: 4, y: 5});
+    const updatedDraftView = document.renderView();
+    assert.notStrictEqual(updatedDraftView, firstDraftView);
+    assert.strictEqual(updatedDraftView.draft.points, firstPointSequence);
+    assert.deepEqual([...updatedDraftView.draft.points], [
+        {x: 1, y: 2},
+        {x: 4, y: 5},
+    ]);
+
+    document.commitStroke();
+    const committedView = document.renderView();
+    assert.equal(committedView.draft, null);
+    assert.equal(committedView.committed.length, 1);
+    assert.ok(Object.isFrozen(committedView.committed[0]));
+    assert.ok(Object.isFrozen(committedView.committed[0].points));
+});
+
+test('reuses one render view across multiple overlay consumers', () => {
+    const document = new AnnotationDocument();
+    document.beginStroke(validStroke);
+    document.appendPoint({x: 2, y: 3});
+    document.commitStroke();
+
+    const firstOverlayView = document.renderView();
+    const secondOverlayView = document.renderView();
+
+    assert.strictEqual(firstOverlayView, secondOverlayView);
+    assert.strictEqual(
+        firstOverlayView.committed,
+        secondOverlayView.committed
+    );
+});
+
+test('bounds all stored undo, redo and draft points for a session', () => {
+    const document = new AnnotationDocument({maxPoints: 4, maxStrokes: 2});
+
+    assert.equal(document.beginStroke(validStroke), true);
+    assert.equal(document.appendPoint({x: 2, y: 3}), true);
+    assert.equal(document.commitStroke(), true);
+
+    assert.equal(document.beginStroke({
+        ...validStroke,
+        point: {x: 10, y: 20},
+    }), true);
+    assert.equal(document.appendPoint({x: 30, y: 40}), true);
+    assert.equal(document.canAppendPoint, false);
+    assert.equal(document.appendPoint({x: 50, y: 60}), false);
+    assert.equal(document.replaceEndPoint({x: 50, y: 60}), true);
+    assert.equal(document.commitStroke(), true);
+    assert.equal(document.pointCount, 4);
+
+    assert.equal(document.beginStroke(validStroke), false);
+    assert.equal(document.undo(), true);
+    assert.equal(document.pointCount, 4);
+    assert.equal(document.beginStroke(validStroke), false);
+
+    document.clear();
+    assert.equal(document.pointCount, 0);
+    assert.equal(document.beginStroke(validStroke), true);
+});
+
+test('releases invalidated redo points after a new commit', () => {
+    const document = new AnnotationDocument({maxPoints: 4});
+    document.beginStroke(validStroke);
+    document.appendPoint({x: 2, y: 3});
+    document.commitStroke();
+    document.undo();
+    assert.equal(document.pointCount, 2);
+
+    document.beginStroke({...validStroke, point: {x: 10, y: 20}});
+    document.appendPoint({x: 30, y: 40});
+    document.commitStroke();
+
+    assert.equal(document.pointCount, 2);
+    assert.equal(document.canRedo, false);
+});
+
+test('publishes finite production document limits', () => {
+    assert.equal(MAX_DOCUMENT_POINTS, 65_536);
+    assert.equal(MAX_DOCUMENT_STROKES, 1_024);
+    assert.throws(() => new AnnotationDocument({maxPoints: 1}), RangeError);
+    assert.throws(() => new AnnotationDocument({maxStrokes: 0}), RangeError);
 });
