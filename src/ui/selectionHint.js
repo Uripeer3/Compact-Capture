@@ -3,9 +3,12 @@
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
+import {
+    gettext as _,
+} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export const SELECTION_HINT_TEXT =
-    'Drag to select an area, or press C then Enter for full screen';
+    _('Drag to select an area, or press C then Enter for full screen');
 
 export const SelectionHint = GObject.registerClass(
 class SelectionHint extends St.Label {

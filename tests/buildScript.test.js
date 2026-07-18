@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {
     chmod,
+    mkdir,
     mkdtemp,
     readFile,
     rm,
@@ -54,6 +55,55 @@ printf '%s\\n' "$@" > "$CAPTURED_ARGUMENTS"
             'shell',
             'ui',
         ]);
+    } finally {
+        await rm(temporaryDirectory, {recursive: true, force: true});
+    }
+});
+
+test('build compiles and packages translation catalogs when present', async () => {
+    const temporaryDirectory = await mkdtemp(
+        path.join(tmpdir(), 'compact-capture-i18n-build-')
+    );
+    const fakePacker = path.join(temporaryDirectory, 'gnome-extensions');
+    const fakeMsgfmt = path.join(temporaryDirectory, 'msgfmt');
+    const capturedArguments = path.join(temporaryDirectory, 'arguments');
+    const poDirectory = path.join(temporaryDirectory, 'po');
+
+    try {
+        await writeFile(fakePacker, `#!/usr/bin/env bash
+printf '%s\\n' "$@" > "$CAPTURED_ARGUMENTS"
+`);
+        await writeFile(fakeMsgfmt, `#!/usr/bin/env bash
+for argument in "$@"; do
+    case "$argument" in
+        --output-file=*) output="\${argument#--output-file=}" ;;
+    esac
+done
+mkdir -p "\${output%/*}"
+printf 'compiled catalog' > "$output"
+`);
+        await chmod(fakePacker, 0o755);
+        await chmod(fakeMsgfmt, 0o755);
+        await mkdir(poDirectory, {recursive: true});
+        await writeFile(
+            path.join(poDirectory, 'zz.po'),
+            'msgid ""\nmsgstr ""\n'
+        );
+
+        await execFileAsync(path.join(projectRoot, 'build.sh'), {
+            cwd: projectRoot,
+            env: {
+                ...process.env,
+                CAPTURED_ARGUMENTS: capturedArguments,
+                COMPACT_CAPTURE_PO_DIR: poDirectory,
+                PATH: `${temporaryDirectory}:${process.env.PATH}`,
+            },
+        });
+
+        const argumentsList = (await readFile(capturedArguments, 'utf8'))
+            .trim()
+            .split('\n');
+        assert.ok(argumentsList.includes('--extra-source=locale'));
     } finally {
         await rm(temporaryDirectory, {recursive: true, force: true});
     }

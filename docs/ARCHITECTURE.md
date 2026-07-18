@@ -58,8 +58,18 @@ GNOME-required entry files remain at the source root. Shell-independent state
 and rendering live in `core/`, private integration stays isolated in `shell/`,
 Shell actors live in `ui/`, and bundled symbolic artwork lives in `icons/`.
 
+User-facing Shell strings use the `compact-capture` gettext domain declared in
+`metadata.json`. Internal tool identifiers, annotation data and compatibility
+diagnostics remain stable untranslated values; only displayed labels, hints and
+accessible names cross the localization boundary.
+
 The adapter must fail open: when compatibility checks fail, GNOME's original
 screenshot behaviour must continue unchanged.
+
+The complete data-handling boundary and user-visible limitations are recorded
+in [PRIVACY.md](PRIVACY.md). Installation and compatibility recovery steps are
+kept in [TROUBLESHOOTING.md](TROUBLESHOOTING.md) rather than expanding the
+private adapter.
 
 ## Adapter contract
 
@@ -285,11 +295,12 @@ only `_saveScreenshot()` and always delegates storage to its original method.
 
 ## Deliberate exclusions
 
-Version 0.1 will add pixelate and blur but will not provide text, numbered
-markers, selecting and moving existing annotations, alternate image formats,
-Save As, custom storage, custom notifications, OCR or external-editor
-integration. These require additional interaction design or ownership beyond
-the compact workflow being validated.
+Version 0.1 will not provide Pixelate, Blur, text, numbered markers, selecting
+and moving existing annotations, alternate image formats, Save As, custom
+storage, custom notifications, OCR or external-editor integration. These
+require additional interaction design or ownership beyond the compact workflow
+being validated.
 
-Pixelate and blur are visual obscuring tools, not secure redaction. That
-distinction must remain visible in documentation and user-facing guidance.
+Pixelate and Blur are deferred to the Version 0.2 object-editing architecture.
+If added, they remain visual obscuring tools rather than secure redaction; that
+distinction must stay visible in documentation and user-facing guidance.

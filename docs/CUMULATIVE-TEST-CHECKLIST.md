@@ -326,6 +326,24 @@ readable clipboard are incomplete even when the saved PNG passed.
 | [x] | P11-X2 | Every required PR11 row passes. | **FAIL**; one cache-parity defect remains and several hardware-dependent rows are incomplete. |
 | [ ] | P11-X3 | Record reviewer name and date before merge. | **NOT RUN**; PR11 is not ready for manual acceptance. |
 
+## PR 13 - Translations, compatibility and scope reconciliation
+
+The focused procedure is in [`PR13-TESTING.md`](PR13-TESTING.md). Results stay
+empty until rerun on the PR 13 commit in a real GNOME 50 session.
+
+| Run | ID | Test | Result / evidence |
+| --- | --- | --- | --- |
+| [ ] | P13-B1 | Run Node, syntax, benchmark, GJS pixel and package checks. |  |
+| [ ] | P13-L1 | Verify English fallback and one compiled translated catalog. |  |
+| [ ] | P13-L2 | Verify RTL grouping, focus order, placement and accessible names. |  |
+| [ ] | P13-C1 | GNOME 50 enables with metadata/runtime version parity. |  |
+| [ ] | P13-C2 | Unsupported and missing-contract fixtures fail open without native mutation. |  |
+| [ ] | P13-C3 | Five enable/disable cycles restore every native actor and signal. |  |
+| [ ] | P13-D1 | Privacy, limitations and troubleshooting match the implemented ownership boundary. |  |
+| [ ] | P13-D2 | v0.1 contains no Pixelate/Blur promise; all retained requirements live in the v0.2 roadmap. |  |
+| [ ] | P13-R1 | Empty, Window, recording and all four drawing-tool paths retain prior behavior. |  |
+| [ ] | P13-X1 | Full journal review contains no unexplained JavaScript, compatibility or gettext error. |  |
+
 ## Current blockers and next run
 
 1. Rerun P11-D2, P11-D4, P11-D5 and the related output-parity rows against the
@@ -338,3 +356,5 @@ readable clipboard are incomplete even when the saved PNG passed.
    real touch device for PR10-T1 through PR10-T4.
 5. Run the parent and PR11 4K performance matrices with ten pointer-off and ten
    pointer-on samples per build.
+6. Complete the PR13 localization, RTL, compatibility and documentation rows
+   before marking the v0.1 release contract ready for hardening.

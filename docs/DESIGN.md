@@ -21,28 +21,15 @@ language, capture controls and interaction model.
 
 The toolbar contains, in order:
 
-- freehand, rectangle, arrow, highlighter and Obscure tools;
+- freehand, rectangle, arrow and highlighter tools;
 - the colour palette;
-- line width or effect intensity for the selected tool;
-- undo, redo and clear actions;
-- an Obscure treatment control when that tool is active.
+- line width;
+- undo, redo and clear actions.
 
 Use 16-pixel symbolic artwork inside compact focusable buttons. Every icon-only
 control requires an accessible name and a delayed hover hint. Selected, hover,
 active, insensitive and keyboard-focus states must remain distinct using Shell
 theme colours rather than fixed panel colours.
-
-## Pixelate and blur
-
-Pixelate and Blur are treatments of one Obscure tool rather than separate
-top-level tools. Pixelate is the default because its effect is immediately
-recognisable. The user drags a rectangle and can adjust its bounds and effect
-intensity before capture.
-
-Both treatments must be bounded to the affected region during preview and final
-rendering. The toolbar and documentation must not describe either treatment as
-secure redaction; source pixels may remain recoverable in other workflows or
-file histories.
 
 ## Keyboard and accessibility
 
@@ -59,9 +46,12 @@ image.
 
 ## Version 0.1 scope
 
-Included tools are freehand, rectangle, arrow, highlighter, pixelate and blur.
-Undo, redo, clear, clipboard output and saved output are release requirements.
+Included tools are freehand, rectangle, arrow and highlighter. Undo, redo,
+clear, clipboard output and saved output are release requirements.
 
-Text, numbered markers, selecting or moving existing annotations, window
-annotations, OCR, custom save flows and external export integrations are
-explicitly deferred.
+Pixelate, blur, text, numbered markers, selecting or moving existing
+annotations, window annotations, OCR, custom save flows and external export
+integrations are explicitly deferred. Obscure-tool interaction and rendering
+requirements now live in the
+[Version 0.2 roadmap](v2_roadmap.md), keeping this document limited to the
+approved v0.1 contract.

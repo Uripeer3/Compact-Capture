@@ -7,6 +7,7 @@ import {
     inspectScreenshotUi,
     SUPPORTED_SHELL_MAJORS,
 } from '../src/shell/screenshotUiContract.js';
+import {SHELL_VERSION_FIXTURES} from './fixtures/shellVersions.js';
 
 function compatibleUi() {
     class MockActor {
@@ -75,24 +76,38 @@ function compatibleUi() {
     return new MockScreenshotUi();
 }
 
-test('accepts the supported GNOME Shell major version', () => {
-    const result = inspectScreenshotUi('50.2', compatibleUi());
+test('accepts every explicit supported-version fixture', () => {
+    for (const fixture of SHELL_VERSION_FIXTURES.supported) {
+        const result = inspectScreenshotUi(fixture.version, compatibleUi());
 
-    assert.equal(result.compatible, true);
-    assert.equal(result.shellMajor, 50);
-    assert.deepEqual(result.issues, []);
+        assert.equal(result.compatible, true, fixture.name);
+        assert.equal(result.shellMajor, fixture.major, fixture.name);
+        assert.deepEqual(result.issues, [], fixture.name);
+    }
     assert.deepEqual(SUPPORTED_SHELL_MAJORS, [50]);
 });
 
-test('fails open on unsupported and malformed versions', () => {
-    const unsupported = inspectScreenshotUi('49.6', compatibleUi());
-    const malformed = inspectScreenshotUi('development', compatibleUi());
+test('fails open for every unsupported or malformed version fixture', () => {
+    for (const fixture of SHELL_VERSION_FIXTURES.unsupported) {
+        const result = inspectScreenshotUi(fixture.version, compatibleUi());
 
-    assert.equal(unsupported.compatible, false);
-    assert.equal(unsupported.shellMajor, 49);
-    assert.match(unsupported.issues[0], /unsupported/);
-    assert.equal(malformed.compatible, false);
-    assert.equal(malformed.shellMajor, null);
+        assert.equal(result.compatible, false, fixture.name);
+        assert.equal(result.shellMajor, fixture.major, fixture.name);
+        assert.match(result.issues[0], /unsupported/, fixture.name);
+    }
+});
+
+test('metadata advertises exactly the runtime-gated Shell majors', async () => {
+    const {readFile} = await import('node:fs/promises');
+    const metadata = JSON.parse(await readFile(
+        new URL('../src/metadata.json', import.meta.url),
+        'utf8'
+    ));
+    const advertisedMajors = metadata['shell-version'].map(version =>
+        Number.parseInt(version, 10)
+    );
+
+    assert.deepEqual(advertisedMajors, SUPPORTED_SHELL_MAJORS);
 });
 
 test('reports a missing ScreenshotUI object', () => {

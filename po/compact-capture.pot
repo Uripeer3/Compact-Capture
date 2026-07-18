@@ -1,0 +1,72 @@
+# Compact Capture translation template.
+# This file is distributed under the same licence as Compact Capture.
+msgid ""
+msgstr ""
+"Project-Id-Version: Compact Capture 0.1\n"
+"POT-Creation-Date: 2026-07-18 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Compact Capture"
+msgstr ""
+
+msgid "Adds a compact annotation workflow to GNOME's built-in screenshot interface."
+msgstr ""
+
+msgid "Annotation tools"
+msgstr ""
+
+msgid "Freehand"
+msgstr ""
+
+msgid "Rectangle"
+msgstr ""
+
+msgid "Arrow"
+msgstr ""
+
+msgid "Highlighter"
+msgstr ""
+
+msgid "White"
+msgstr ""
+
+msgid "Black"
+msgstr ""
+
+msgid "Red"
+msgstr ""
+
+msgid "Yellow"
+msgstr ""
+
+msgid "Green"
+msgstr ""
+
+msgid "Blue"
+msgstr ""
+
+# Translators: %s is a translated color name.
+#, javascript-format
+msgid "%s color"
+msgstr ""
+
+msgid "Line width"
+msgstr ""
+
+msgid "Undo"
+msgstr ""
+
+msgid "Redo"
+msgstr ""
+
+msgid "Clear all annotations"
+msgstr ""
+
+msgid "Drag to select an area, or press C then Enter for full screen"
+msgstr ""
