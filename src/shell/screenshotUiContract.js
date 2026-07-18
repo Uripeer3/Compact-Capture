@@ -39,6 +39,11 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
                 'Main.screenshotUI.open is not defined on its direct prototype'
             );
         }
+        if (!prototype || !Object.hasOwn(prototype, '_saveScreenshot')) {
+            issues.push(
+                'Main.screenshotUI._saveScreenshot is not defined on its direct prototype'
+            );
+        }
 
         const primaryMonitorBin = screenshotUi._primaryMonitorBin;
         for (const method of ['add_child', 'remove_child']) {
@@ -129,6 +134,26 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
 
         if (!Array.isArray(screenshotUi._screenSelectors))
             issues.push('Main.screenshotUI._screenSelectors is unavailable');
+
+        const cursor = screenshotUi._cursor;
+        for (const method of ['set_content', 'set_position']) {
+            if (typeof cursor?.[method] !== 'function') {
+                issues.push(
+                    `Main.screenshotUI._cursor.${method} is unavailable`
+                );
+            }
+        }
+        if (typeof cursor?.visible !== 'boolean')
+            issues.push('Main.screenshotUI._cursor.visible is unavailable');
+        for (const field of ['x', 'y', 'opacity']) {
+            if (!Number.isFinite(cursor?.[field]))
+                issues.push(`Main.screenshotUI._cursor.${field} is unavailable`);
+        }
+        if (!Number.isFinite(screenshotUi._cursorScale)) {
+            issues.push(
+                'Main.screenshotUI._cursorScale is unavailable'
+            );
+        }
     }
 
     return Object.freeze({

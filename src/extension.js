@@ -52,6 +52,7 @@ export default class CompactCaptureExtension extends Extension {
                 this._awaitingAreaSelection = false;
                 this._refreshSession(session);
             },
+            getAnnotations: () => this._document.snapshot(),
             onClosed: () => {
                 this._hideAnnotationUi();
                 this._hideSelectionHint();

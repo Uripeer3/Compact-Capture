@@ -16,9 +16,11 @@ starts empty with a short keyboard hint; annotation controls stay hidden until
 the native selection drag finishes. Freehand, rectangle, arrow and highlighter
 previews, undo and clear now work.
 
-PR 4 is still a preview milestone: annotations are not yet composited into the
-saved screenshot. PR 5 will connect the document to GNOME's native output path,
-so the project is not ready for end-user installation.
+Area and screen annotations are now composited into copied and saved
+screenshots through GNOME's native output path. Captures without annotations,
+window captures and screen recordings continue through GNOME unchanged. The
+project remains pre-release while editing completeness and compatibility work
+continue.
 
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.

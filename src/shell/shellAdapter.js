@@ -6,6 +6,7 @@ import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+import {createAnnotationOutput} from './outputRenderer.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
 const EMPTY_SELECTION_COORDINATE = -1_000_000;
@@ -55,6 +56,8 @@ export class ScreenshotUiAdapter {
     #sessionOpen = false;
     #selectionVisualOpacities = null;
     #captureButtonReactive = null;
+    #captureInProgress = null;
+    #getAnnotations;
 
     constructor({
         onOpened = null,
@@ -63,6 +66,7 @@ export class ScreenshotUiAdapter {
         onCaptureChanged = null,
         onSelectionStarted = null,
         onSelectionChanged = null,
+        getAnnotations = null,
     } = {}) {
         this.#screenshotUi = Main.screenshotUI;
         this.#screenshotUiPrototype = this.#screenshotUi
@@ -74,6 +78,7 @@ export class ScreenshotUiAdapter {
         this.#onCaptureChanged = onCaptureChanged;
         this.#onSelectionStarted = onSelectionStarted;
         this.#onSelectionChanged = onSelectionChanged;
+        this.#getAnnotations = getAnnotations;
     }
 
     get active() {
@@ -113,6 +118,17 @@ export class ScreenshotUiAdapter {
                     const result = await originalMethod.apply(this, args);
                     adapter.#handleOpenCompleted();
                     return result;
+                }
+            );
+            injectionManager.overrideMethod(
+                this.#screenshotUiPrototype,
+                '_saveScreenshot',
+                originalMethod => async function (...args) {
+                    return adapter.#saveScreenshot(
+                        this,
+                        originalMethod,
+                        args
+                    );
                 }
             );
 
@@ -173,6 +189,7 @@ export class ScreenshotUiAdapter {
             this.#connections = connections;
             this.#sessionOpen = false;
             this.#lastCaptureType = null;
+            this.#captureInProgress = null;
             this.#active = true;
             return true;
         } catch (error) {
@@ -195,6 +212,7 @@ export class ScreenshotUiAdapter {
         this.#sessionOpen = false;
         this.#lastCaptureType = null;
         this.#emptySelectionOnScreenshotReturn = false;
+        this.#captureInProgress = null;
         this.#active = false;
     }
 
@@ -484,6 +502,121 @@ export class ScreenshotUiAdapter {
         if (this.#screenshotUi._screenButton.checked)
             return 'screen';
         return 'selection';
+    }
+
+    async #saveScreenshot(screenshotUi, originalMethod, args) {
+        if (screenshotUi !== this.#screenshotUi ||
+            !this.#active || !this.#sessionOpen ||
+            !this.#screenshotUi._shotButton.checked ||
+            this.#captureType() === 'window') {
+            return originalMethod.apply(screenshotUi, args);
+        }
+
+        let strokes;
+        try {
+            strokes = this.#getAnnotations?.() ?? [];
+        } catch (error) {
+            console.error(
+                'Compact Capture could not read its annotation document',
+                error
+            );
+            return originalMethod.apply(screenshotUi, args);
+        }
+
+        if (!Array.isArray(strokes) || strokes.length === 0)
+            return originalMethod.apply(screenshotUi, args);
+        if (this.#captureInProgress)
+            return this.#captureInProgress;
+
+        const session = this.#currentSession();
+        if (!session.selection)
+            return originalMethod.apply(screenshotUi, args);
+
+        const capture = this.#saveAnnotatedScreenshot(
+            screenshotUi,
+            originalMethod,
+            args,
+            strokes,
+            session
+        );
+        this.#captureInProgress = capture;
+
+        try {
+            return await capture;
+        } finally {
+            if (this.#captureInProgress === capture)
+                this.#captureInProgress = null;
+        }
+    }
+
+    async #saveAnnotatedScreenshot(
+        screenshotUi,
+        originalMethod,
+        args,
+        strokes,
+        session
+    ) {
+        const cursor = this.#screenshotUi._cursor;
+        const originalCursor = {
+            content: cursor.content,
+            visible: cursor.visible,
+            opacity: cursor.opacity,
+            x: cursor.x,
+            y: cursor.y,
+            scale: this.#screenshotUi._cursorScale,
+        };
+        let delegated = false;
+
+        try {
+            const cursorTexture = originalCursor.visible
+                ? originalCursor.content?.get_texture?.() ?? null
+                : null;
+            const output = await createAnnotationOutput({
+                strokes,
+                selection: session.selection,
+                outputScale: session.outputScale,
+                cursor: cursorTexture
+                    ? {
+                        texture: cursorTexture,
+                        x: originalCursor.x,
+                        y: originalCursor.y,
+                        scale: originalCursor.scale,
+                    }
+                    : null,
+            });
+
+            cursor.set_content(output.content);
+            cursor.set_position(output.x, output.y);
+            cursor.visible = true;
+            // The texture is an output-only bridge; do not flash it inside
+            // the still-open screenshot UI while GNOME encodes the image.
+            cursor.opacity = 0;
+            this.#screenshotUi._cursorScale = output.scale;
+
+            delegated = true;
+            return await originalMethod.apply(screenshotUi, args);
+        } catch (error) {
+            if (delegated)
+                throw error;
+
+            console.error(
+                'Compact Capture could not prepare annotated output; ' +
+                'using GNOME capture unchanged',
+                error
+            );
+            this.#restoreCursor(cursor, originalCursor);
+            return await originalMethod.apply(screenshotUi, args);
+        } finally {
+            this.#restoreCursor(cursor, originalCursor);
+        }
+    }
+
+    #restoreCursor(cursor, state) {
+        cursor.set_content(state.content);
+        cursor.set_position(state.x, state.y);
+        cursor.visible = state.visible;
+        cursor.opacity = state.opacity;
+        this.#screenshotUi._cursorScale = state.scale;
     }
 
     #enterEmptySelection() {
