@@ -6,7 +6,7 @@ capture path usable and include tests for new Shell-independent behaviour.
 
 Manual acceptance is tracked in the
 [cumulative test checklist](docs/CUMULATIVE-TEST-CHECKLIST.md). Starting with
-PR 12, each PR-specific test contract must reference that checklist, add its
+PR 13, each PR-specific test contract must reference that checklist, add its
 new coverage there and carry forward unresolved applicable rows. Historical
 results remain tied to the commit and environment that produced them; a code
 fix does not become a manual Pass until the affected row is rerun.
@@ -60,7 +60,7 @@ Status: merged.
 ## Version 0.1
 
 Version 0.1 validates a fast capture-and-mark-up workflow. Its drawing tools are
-freehand, rectangle, arrow, highlighter, pixelate and blur. Text, numbered
+freehand, rectangle, arrow and highlighter. Pixelate, blur, text, numbered
 markers, object selection and external export integrations are deferred.
 
 ### PR 6 — Editing history and project contract
@@ -124,7 +124,7 @@ Status: merged.
 
 ### PR 11 — Cursor and output-bridge performance
 
-Status: in progress.
+Status: merged.
 
 - Replace the otherwise-unused PNG encoding pass in cursor composition with a
   supported raw-texture, Cairo or Cogl route.
@@ -137,7 +137,8 @@ Status: in progress.
 - Let divergent edits reclaim redo capacity and replace full stroke-array
   copies with persistent read-only history views.
 - Retain committed Cairo surfaces, append new strokes directly and repaint only
-  dirty bounds for undo before pixelate and blur increase rendering cost.
+  dirty bounds for undo before future source-dependent tools increase rendering
+  cost.
 - Align dirty clips outward to cache device pixels and regression-test
   translucent undo/redo with real Cairo at 100% and 200% scale.
 - Require real-session output, alpha, cursor-edge and 4K performance results in
@@ -145,23 +146,30 @@ Status: in progress.
 
 ### PR 12 — Pixelate and blur
 
-- Add one Obscure tool with Pixelate as its default treatment and Blur as the
-  alternative.
-- Add rectangular obscure regions, resizing and an intensity control.
-- Guarantee preview, saved PNG and clipboard parity.
-- Bound preview and output work for large regions and older hardware.
-- Explain that visual obscuring is not a substitute for secure redaction.
+Status: closed without merge; deferred to Version 0.2.
+
+- The prototype established useful rendering, performance and test constraints
+  but also showed that the toolbar model and editing interaction need a design
+  checkpoint before the source-dependent backend becomes part of v0.1.
+- Preserve the experiment in its branch rather than carrying unused backend
+  code into the release.
+- Continue the feature under the independently reviewable Obscure work in the
+  [Version 0.2 roadmap](docs/v2_roadmap.md).
 
 ### PR 13 — Translations and compatibility
+
+Status: in progress.
 
 - Add gettext integration and RTL review.
 - Add explicit supported-version fixtures and fail-open compatibility checks.
 - Document privacy behaviour, limitations and troubleshooting.
+- Reconcile the v0.1 design and release contract after deferring Pixelate and
+  Blur to v0.2.
 
 ### PR 14 — 0.1 release hardening
 
 - Test real Fedora GNOME sessions at 100%, 200% and mixed monitor scales.
-- Measure long-stroke, large obscure-region and 4K capture performance.
+- Measure long-stroke and 4K capture performance.
 - Verify package contents and extensions.gnome.org review requirements.
 - Publish the 0.1 source archive after manual acceptance testing.
 

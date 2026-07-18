@@ -64,7 +64,9 @@ pointer, capture and screen-recording controls remain available and unchanged.
 See [ROADMAP.md](ROADMAP.md) for the sequence to a usable 0.1 release and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the ownership boundary. The
 approved v0.1 interaction and visual contract is recorded in
-[docs/DESIGN.md](docs/DESIGN.md).
+[docs/DESIGN.md](docs/DESIGN.md). See [docs/PRIVACY.md](docs/PRIVACY.md) for
+the data boundary and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for
+installation and compatibility diagnostics.
 
 ## Development checks
 
@@ -91,7 +93,7 @@ loaded modules; after replacing extension files, a fresh login is the reliable
 way to test new JavaScript. Installing a normal extension through GNOME's
 extension service hides most of this discovery and update lifecycle.
 
-See [docs/PR11-TESTING.md](docs/PR11-TESTING.md) for the current real-session
+See [docs/PR13-TESTING.md](docs/PR13-TESTING.md) for the current real-session
 acceptance checklist and the other per-PR testing documents in `docs/` for
 historical checks.
 

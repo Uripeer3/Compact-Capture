@@ -7,6 +7,9 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
+import {
+    gettext as _,
+} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {CompactTooltip} from './compactTooltip.js';
 import {
@@ -15,6 +18,30 @@ import {
     TOOL_COLORS,
     TOOL_DEFINITIONS,
 } from '../core/toolDefinitions.js';
+
+const TOOL_LABELS = Object.freeze({
+    freehand: _('Freehand'),
+    rectangle: _('Rectangle'),
+    arrow: _('Arrow'),
+    highlighter: _('Highlighter'),
+});
+
+const COLOR_LABELS = Object.freeze({
+    White: _('White'),
+    Black: _('Black'),
+    Red: _('Red'),
+    Yellow: _('Yellow'),
+    Green: _('Green'),
+    Blue: _('Blue'),
+});
+
+function translatedToolLabel(tool) {
+    return TOOL_LABELS[tool.id] ?? tool.label;
+}
+
+function translatedColorLabel(color) {
+    return COLOR_LABELS[color.name] ?? color.name;
+}
 
 function normalizedLineWidth(lineWidth) {
     return (lineWidth - LINE_WIDTH_MIN) /
@@ -52,7 +79,7 @@ export const CompactToolbar = GObject.registerClass({
 
         super._init({
             style_class: 'screenshot-ui-panel compact-capture-toolbar',
-            accessible_name: 'Annotation tools',
+            accessible_name: _('Annotation tools'),
             x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.START,
             x_expand: false,
@@ -123,10 +150,11 @@ export const CompactToolbar = GObject.registerClass({
 
     _buildToolButtons() {
         for (const tool of TOOL_DEFINITIONS) {
+            const label = translatedToolLabel(tool);
             const button = new St.Button({
                 child: createToolIcon(tool, this._extensionPath),
                 style_class: 'compact-capture-icon-button',
-                accessible_name: tool.label,
+                accessible_name: label,
                 toggle_mode: true,
                 can_focus: true,
                 y_align: Clutter.ActorAlign.CENTER,
@@ -134,12 +162,13 @@ export const CompactToolbar = GObject.registerClass({
             button.connect('clicked', () => this._selectTool(tool.id));
             this.add_child(button);
             this._toolButtons.set(tool.id, button);
-            this._attachTooltip(button, tool.label);
+            this._attachTooltip(button, label);
         }
     }
 
     _buildColorButtons() {
         for (const color of TOOL_COLORS) {
+            const label = translatedColorLabel(color);
             const swatch = new St.Widget({
                 style_class: 'compact-capture-color-swatch',
                 style: `background-color: ${color.value};`,
@@ -147,7 +176,7 @@ export const CompactToolbar = GObject.registerClass({
             const button = new St.Button({
                 child: swatch,
                 style_class: 'compact-capture-color-button',
-                accessible_name: color.name,
+                accessible_name: label,
                 toggle_mode: true,
                 can_focus: true,
                 y_align: Clutter.ActorAlign.CENTER,
@@ -155,7 +184,8 @@ export const CompactToolbar = GObject.registerClass({
             button.connect('clicked', () => this._selectColor(color.value));
             this.add_child(button);
             this._colorButtons.set(color.value, button);
-            this._attachTooltip(button, `${color.name} color`);
+            // Translators: %s is a translated color name.
+            this._attachTooltip(button, _('%s color').format(label));
         }
     }
 
@@ -167,7 +197,7 @@ export const CompactToolbar = GObject.registerClass({
             'compact-capture-line-width'
         );
         this._lineWidthSlider.set({
-            accessible_name: 'Line width',
+            accessible_name: _('Line width'),
             can_focus: true,
             y_align: Clutter.ActorAlign.CENTER,
         });
@@ -182,23 +212,23 @@ export const CompactToolbar = GObject.registerClass({
             this.emit('line-width-changed', lineWidth);
         });
         this.add_child(this._lineWidthSlider);
-        this._attachTooltip(this._lineWidthSlider, 'Line width');
+        this._attachTooltip(this._lineWidthSlider, _('Line width'));
     }
 
     _buildActionButtons() {
         this._undoButton = this._createActionButton(
             'edit-undo-symbolic',
-            'Undo',
+            _('Undo'),
             () => this.emit('undo')
         );
         this._redoButton = this._createActionButton(
             'edit-redo-symbolic',
-            'Redo',
+            _('Redo'),
             () => this.emit('redo')
         );
         this._clearButton = this._createActionButton(
             'edit-clear-all-symbolic',
-            'Clear all annotations',
+            _('Clear all annotations'),
             () => this.emit('clear')
         );
     }
