@@ -6,6 +6,7 @@ import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+import {AsyncTaskGate} from '../core/asyncTaskGate.js';
 import {shortcutAction} from '../core/keyboardShortcuts.js';
 import {
     AreaState,
@@ -73,8 +74,8 @@ export class ScreenshotUiAdapter {
     #selectionLifecycle = createSelectionLifecycle();
     #selectionVisualOpacities = null;
     #captureButtonReactive = null;
-    #captureInProgress = null;
-    #getAnnotations;
+    #captureGate = new AsyncTaskGate();
+    #prepareCapture;
 
     constructor({
         onOpened = null,
@@ -84,7 +85,7 @@ export class ScreenshotUiAdapter {
         onSelectionStarted = null,
         onSelectionChanged = null,
         onShortcut = null,
-        getAnnotations = null,
+        prepareCapture = null,
     } = {}) {
         this.#screenshotUi = Main.screenshotUI;
         this.#screenshotUiPrototype = this.#screenshotUi
@@ -97,7 +98,7 @@ export class ScreenshotUiAdapter {
         this.#onSelectionStarted = onSelectionStarted;
         this.#onSelectionChanged = onSelectionChanged;
         this.#onShortcut = onShortcut;
-        this.#getAnnotations = getAnnotations;
+        this.#prepareCapture = prepareCapture;
     }
 
     get active() {
@@ -199,7 +200,6 @@ export class ScreenshotUiAdapter {
             this.#connections = connections;
             this.#sessionOpen = false;
             this.#selectionLifecycle = createSelectionLifecycle();
-            this.#captureInProgress = null;
             this.#active = true;
             return true;
         } catch (error) {
@@ -222,7 +222,6 @@ export class ScreenshotUiAdapter {
         this.#injectionManager = null;
         this.#sessionOpen = false;
         this.#selectionLifecycle = createSelectionLifecycle();
-        this.#captureInProgress = null;
         this.#active = false;
     }
 
@@ -558,40 +557,72 @@ export class ScreenshotUiAdapter {
             return originalMethod.apply(screenshotUi, args);
         }
 
-        let strokes;
+        return this.#captureGate.run(() => this.#prepareAndSaveScreenshot(
+            screenshotUi,
+            originalMethod,
+            args
+        ));
+    }
+
+    async #prepareAndSaveScreenshot(screenshotUi, originalMethod, args) {
+        const session = this.#currentSession();
+        if (!session.selection)
+            return originalMethod.apply(screenshotUi, args);
+
+        let preparation;
         try {
-            strokes = this.#getAnnotations?.() ?? [];
+            preparation = this.#prepareCapture?.() ?? null;
+            if (!preparation)
+                return originalMethod.apply(screenshotUi, args);
+            if (!Array.isArray(preparation.annotations) ||
+                typeof preparation.release !== 'function') {
+                preparation.release?.();
+                throw new TypeError('Capture preparation is invalid');
+            }
         } catch (error) {
             console.error(
-                'Compact Capture could not read its annotation document',
+                'Compact Capture could not prepare its annotation document',
                 error
             );
             return originalMethod.apply(screenshotUi, args);
         }
 
-        if (!Array.isArray(strokes) || strokes.length === 0)
-            return originalMethod.apply(screenshotUi, args);
-        if (this.#captureInProgress)
-            return this.#captureInProgress;
-
-        const session = this.#currentSession();
-        if (!session.selection)
-            return originalMethod.apply(screenshotUi, args);
-
-        const capture = this.#saveAnnotatedScreenshot(
+        return this.#savePreparedScreenshot(
             screenshotUi,
             originalMethod,
             args,
-            strokes,
-            session
+            session,
+            preparation
         );
-        this.#captureInProgress = capture;
+    }
 
+    async #savePreparedScreenshot(
+        screenshotUi,
+        originalMethod,
+        args,
+        session,
+        preparation
+    ) {
         try {
-            return await capture;
+            if (preparation.annotations.length === 0)
+                return await originalMethod.apply(screenshotUi, args);
+
+            return await this.#saveAnnotatedScreenshot(
+                screenshotUi,
+                originalMethod,
+                args,
+                preparation.annotations,
+                session
+            );
         } finally {
-            if (this.#captureInProgress === capture)
-                this.#captureInProgress = null;
+            try {
+                preparation.release();
+            } catch (error) {
+                console.error(
+                    'Compact Capture could not restore annotation input',
+                    error
+                );
+            }
         }
     }
 

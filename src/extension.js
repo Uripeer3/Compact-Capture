@@ -3,6 +3,7 @@
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {AnnotationDocument} from './core/annotationDocument.js';
+import {CapturePreparation} from './core/capturePreparation.js';
 import {
     drawingRects,
     monitorForRect,
@@ -26,9 +27,13 @@ export default class CompactCaptureExtension extends Extension {
         this._selectionHint = null;
         this._overlays = [];
         this._session = null;
+        this._annotationInputEnabled = true;
+        this._capturePreparation = new CapturePreparation();
 
         this._shellAdapter = new ScreenshotUiAdapter({
             onOpened: session => {
+                this._capturePreparation.cancel();
+                this._annotationInputEnabled = true;
                 this._document.clear();
                 this._refreshSession(session);
             },
@@ -48,8 +53,9 @@ export default class CompactCaptureExtension extends Extension {
                 this._refreshSession(session);
             },
             onShortcut: action => this._handleShortcut(action),
-            getAnnotations: () => this._document.snapshot(),
+            prepareCapture: () => this._prepareCapture(),
             onClosed: () => {
+                this._capturePreparation.cancel();
                 this._hideAnnotationUi();
                 this._hideSelectionHint();
                 this._document.clear();
@@ -60,6 +66,7 @@ export default class CompactCaptureExtension extends Extension {
     }
 
     disable() {
+        this._capturePreparation?.cancel();
         this._hideAnnotationUi();
         this._hideSelectionHint();
         this._shellAdapter?.disable();
@@ -67,6 +74,7 @@ export default class CompactCaptureExtension extends Extension {
 
         this._document?.clear();
         this._document = null;
+        this._capturePreparation = null;
         this._toolbarState = null;
         this._session = null;
     }
@@ -126,6 +134,7 @@ export default class CompactCaptureExtension extends Extension {
         }
 
         this._toolbar = toolbar;
+        toolbar.setInputEnabled(this._annotationInputEnabled);
         this._placeToolbar(toolbarMonitor);
 
         for (const stageRect of drawingRects(
@@ -139,6 +148,7 @@ export default class CompactCaptureExtension extends Extension {
                 stageRect,
                 onDocumentChanged: () => this._repaintOverlays(),
             });
+            overlay.setInputEnabled(this._annotationInputEnabled);
             if (this._shellAdapter.mountOverlay(overlay))
                 this._overlays.push(overlay);
             else
@@ -212,6 +222,9 @@ export default class CompactCaptureExtension extends Extension {
     }
 
     _handleShortcut(action) {
+        if (!this._annotationInputEnabled)
+            return false;
+
         let handled = false;
         if (action === ShortcutAction.UNDO)
             handled = this._undo();
@@ -221,6 +234,9 @@ export default class CompactCaptureExtension extends Extension {
     }
 
     _undo() {
+        if (!this._annotationInputEnabled)
+            return false;
+
         let changed;
         if (this._document.isDrawing) {
             this._cancelActiveGestures();
@@ -235,6 +251,9 @@ export default class CompactCaptureExtension extends Extension {
     }
 
     _redo() {
+        if (!this._annotationInputEnabled)
+            return false;
+
         const changed = this._document.redo();
         if (changed)
             this._repaintOverlays();
@@ -242,6 +261,9 @@ export default class CompactCaptureExtension extends Extension {
     }
 
     _clear() {
+        if (!this._annotationInputEnabled)
+            return false;
+
         const changed = this._document.hasAnnotations ||
             this._document.isDrawing;
         this._cancelActiveGestures();
@@ -254,5 +276,29 @@ export default class CompactCaptureExtension extends Extension {
     _cancelActiveGestures() {
         for (const overlay of this._overlays)
             overlay.cancelGesture();
+    }
+
+    _prepareCapture() {
+        return this._capturePreparation.begin({
+            finishDraft: () => {
+                for (const overlay of this._overlays)
+                    overlay.finishGestureForCapture();
+                if (this._document.isDrawing) {
+                    this._document.commitStroke();
+                    this._repaintOverlays();
+                }
+            },
+            snapshot: () => this._document.snapshot(),
+            setInputEnabled: enabled => {
+                this._setAnnotationInputEnabled(enabled);
+            },
+        });
+    }
+
+    _setAnnotationInputEnabled(enabled) {
+        this._annotationInputEnabled = Boolean(enabled);
+        for (const overlay of this._overlays)
+            overlay.setInputEnabled(this._annotationInputEnabled);
+        this._toolbar?.setInputEnabled(this._annotationInputEnabled);
     }
 }
