@@ -158,6 +158,9 @@ export const CompactToolbar = GObject.registerClass({
             y_align: Clutter.ActorAlign.CENTER,
         });
         this._lineWidthSlider.connect('notify::value', () => {
+            if (this._syncingLineWidth)
+                return;
+
             const lineWidth = LINE_WIDTH_MIN +
                 this._lineWidthSlider.value *
                 (LINE_WIDTH_MAX - LINE_WIDTH_MIN);
@@ -231,6 +234,7 @@ export const CompactToolbar = GObject.registerClass({
     _selectTool(tool) {
         this._state.selectTool(tool);
         this._syncToolButtons();
+        this._syncLineWidthSlider();
         this.emit('tool-changed', tool);
     }
 
@@ -248,5 +252,18 @@ export const CompactToolbar = GObject.registerClass({
     _syncColorButtons() {
         for (const [color, button] of this._colorButtons)
             button.checked = color === this._state.color;
+    }
+
+    _syncLineWidthSlider() {
+        const value = normalizedLineWidth(this._state.lineWidth);
+        if (this._lineWidthSlider.value === value)
+            return;
+
+        this._syncingLineWidth = true;
+        try {
+            this._lineWidthSlider.value = value;
+        } finally {
+            this._syncingLineWidth = false;
+        }
     }
 });

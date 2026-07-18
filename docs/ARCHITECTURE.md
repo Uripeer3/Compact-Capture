@@ -108,9 +108,10 @@ native save starts retain GNOME's existing propagation behaviour.
 `ui/compactToolbar.js` ports Gradia Capture's toolbar interaction pattern
 without its settings, drawing-canvas or controller dependencies. It owns only
 Shell widgets and emits semantic tool/style/action signals.
-`core/toolbarState.js` stores the selected tool, palette colour and line width
-independently of Shell so the state is unit-testable and survives switching
-temporarily into recording mode.
+`core/toolbarState.js` stores the selected tool, palette colour and a remembered
+line width for each tool independently of Shell. Highlighter therefore retains
+its wider default without changing the width of the regular drawing tools. The
+state is unit-testable and survives switching temporarily into recording mode.
 
 Undo and redo move complete strokes between session-local stacks. A
 new committed stroke invalidates redo history, clear resets both stacks and an

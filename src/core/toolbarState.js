@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import {
+    defaultWidthForTool,
     isSupportedColor,
     isSupportedTool,
     LINE_WIDTH_MAX,
@@ -10,17 +11,18 @@ import {
 
 export class ToolbarState {
     #color;
-    #lineWidth;
+    #lineWidths = new Map();
     #tool;
 
     constructor({
         tool = Tool.FREEHAND,
         color = '#ed333b',
-        lineWidth = 3,
+        lineWidth,
     } = {}) {
         this.selectTool(tool);
         this.selectColor(color);
-        this.setLineWidth(lineWidth);
+        if (lineWidth !== undefined)
+            this.setLineWidth(lineWidth);
     }
 
     get tool() {
@@ -32,12 +34,14 @@ export class ToolbarState {
     }
 
     get lineWidth() {
-        return this.#lineWidth;
+        return this.#lineWidths.get(this.#tool);
     }
 
     selectTool(tool) {
         if (!isSupportedTool(tool))
             throw new TypeError(`Unsupported annotation tool: ${tool}`);
+        if (!this.#lineWidths.has(tool))
+            this.#lineWidths.set(tool, defaultWidthForTool(tool));
         this.#tool = tool;
     }
 
@@ -54,14 +58,14 @@ export class ToolbarState {
                 `Line width must be between ${LINE_WIDTH_MIN} and ${LINE_WIDTH_MAX}`
             );
         }
-        this.#lineWidth = lineWidth;
+        this.#lineWidths.set(this.#tool, lineWidth);
     }
 
     snapshot() {
         return Object.freeze({
             tool: this.#tool,
             color: this.#color,
-            lineWidth: this.#lineWidth,
+            lineWidth: this.lineWidth,
         });
     }
 }

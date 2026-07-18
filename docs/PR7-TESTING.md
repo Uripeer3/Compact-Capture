@@ -20,6 +20,9 @@ npm run check
 4. Move keyboard focus with `Tab` and `Shift+Tab`. The focus ring must remain
    visible on checked and unchecked controls. `Enter` and `Space` must activate
    the focused button.
+5. Select Highlighter and confirm its initial width is 12, then return to a
+   regular drawing tool and confirm its initial width is 3. Customize both
+   widths and switch between them; each tool must restore its own slider value.
 
 ## Shared hints
 

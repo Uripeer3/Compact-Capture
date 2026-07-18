@@ -78,8 +78,47 @@ Status: in progress.
   controller, including keyboard-focus hints and rapid-transition tests.
 - Keep the toolbar outside the selected output whenever monitor space permits,
   with balanced fallback placement on narrow monitors.
+- Apply and remember each tool's own line-width default.
 
-### PR 8 — Pixelate and blur
+### PR 8 — Bounded live rendering
+
+- Remove deep document snapshots and avoidable point-array allocations from
+  the pointer-motion repaint path.
+- Share immutable render views and cache committed drawing work across overlay
+  repaints.
+- Enforce a benchmark-backed session-wide stroke and point budget.
+- Add allocation, budget and multi-monitor performance coverage before adding
+  more expensive tools.
+
+### PR 9 — Selection lifecycle correctness
+
+- Model screenshot mode, capture type and empty-area state as explicit
+  lifecycle transitions.
+- Reconcile empty-area state when ScreenshotUI opens directly in recording
+  mode and later returns to screenshot mode.
+- Rebind dynamically recreated screen-selector actors for every session.
+- Extract and unit-test selection lifecycle rules while keeping private
+  ScreenshotUI access inside the adapter.
+
+### PR 10 — Atomic capture and input ownership
+
+- Commit or cancel the visible draft before freezing one output snapshot.
+- Disable annotation input for the duration of native asynchronous capture and
+  restore it if preparation fails.
+- Associate touch gestures with their initiating Clutter event sequence.
+- Cover concurrent capture requests, failure recovery and unrelated touch
+  sequences.
+
+### PR 11 — Cursor and output-bridge performance
+
+- Replace the otherwise-unused PNG encoding pass in cursor composition with a
+  supported raw-texture, Cairo or Cogl route.
+- Measure pointer-on and pointer-off capture time and memory at 4K and 200%
+  scaling while preserving output parity.
+- Extract annotated-output interception and cursor restoration from the main
+  adapter behind a narrow, fail-open interface.
+
+### PR 12 — Pixelate and blur
 
 - Add one Obscure tool with Pixelate as its default treatment and Blur as the
   alternative.
@@ -88,13 +127,13 @@ Status: in progress.
 - Bound preview and output work for large regions and older hardware.
 - Explain that visual obscuring is not a substitute for secure redaction.
 
-### PR 9 — Translations and compatibility
+### PR 13 — Translations and compatibility
 
 - Add gettext integration and RTL review.
 - Add explicit supported-version fixtures and fail-open compatibility checks.
 - Document privacy behaviour, limitations and troubleshooting.
 
-### PR 10 — 0.1 release hardening
+### PR 14 — 0.1 release hardening
 
 - Test real Fedora GNOME sessions at 100%, 200% and mixed monitor scales.
 - Measure long-stroke, large obscure-region and 4K capture performance.
