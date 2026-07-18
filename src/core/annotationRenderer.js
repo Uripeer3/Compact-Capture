@@ -36,6 +36,8 @@ function drawRectangle(cr, stroke) {
     const end = stroke.points.at(-1);
     setColor(cr, stroke.color);
     cr.setLineWidth(stroke.width);
+    cr.setLineCap(Cairo.LineCap.BUTT);
+    cr.setLineJoin(Cairo.LineJoin.MITER);
     cr.rectangle(
         Math.min(start.x, end.x),
         Math.min(start.y, end.y),
@@ -67,6 +69,7 @@ function drawHighlighter(cr, stroke) {
     setColor(cr, stroke.color, 0.4);
     cr.setLineWidth(stroke.width);
     cr.setLineCap(Cairo.LineCap.SQUARE);
+    cr.setLineJoin(Cairo.LineJoin.ROUND);
     drawPolyline(cr, stroke.points);
     cr.stroke();
 }

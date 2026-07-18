@@ -25,7 +25,7 @@ Compact Capture owns:
 - compact annotation controls;
 - conversion of an annotated document into a final texture.
 
-## Planned modules
+## Module map
 
 - `extension.js`: small lifecycle coordinator.
 - `shell/shellAdapter.js`: private GNOME access and compatibility checks.
@@ -36,6 +36,8 @@ Compact Capture owns:
 - `core/gestureSequence.js`: pointer-button and touch-sequence ownership.
 - `core/keyboardShortcuts.js`: pure shortcut-to-action mapping.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
+- `core/annotationSvgRenderer.js`: validated, selection-sized SVG output for
+  Shell-safe in-memory rasterization.
 - `core/annotationBounds.js`: cached visual bounds for committed annotations.
 - `core/renderCachePlan.js`: pure incremental-cache transition decisions.
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
@@ -130,21 +132,23 @@ annotation-side exception cannot prevent the native screenshot UI from working.
 An empty annotation document calls GNOME's original `_saveScreenshot()` with no
 intermediate work or state changes. Window capture remains on that same path.
 
-For an annotated area or screen capture, `shell/outputRenderer.js` creates one
-transparent Cairo surface sized to the selected output rather than the whole
-virtual desktop. The shared renderer draws in stage-logical coordinates at the
-native screenshot scale. GDK's supported `pixbuf_get_from_surface()` conversion
-then supplies the RGBA pixels to a Shell image texture; the extension does not
-read Cairo's private backing buffer. With the pointer disabled, that uploaded
-texture is handed to GNOME directly. With the pointer enabled, a Cogl
-offscreen framebuffer draws the annotation and native cursor textures into one
-new texture. The cursor rectangle is calculated in output pixels and clips at
-the selection boundary.
+For an annotated area or screen capture, `shell/outputRenderer.js` serializes
+the frozen document into one validated SVG sized to the selected output rather
+than the whole virtual desktop. `GdkPixbuf` rasterizes that SVG directly from
+memory and supplies RGBA bytes to a Shell image texture. This avoids importing
+`Gdk`, `Gtk` or `Adw` in the Shell process and creates no temporary file or
+subprocess. With the pointer disabled, that uploaded texture is handed to GNOME
+directly. With the pointer enabled, a Cogl offscreen framebuffer draws the
+annotation and native cursor textures into one new texture. The cursor
+rectangle is calculated in output pixels and clips at the selection boundary.
 
-This mirrors the offscreen-texture copy used by GNOME Shell itself when it
-freezes the native cursor. It performs no intermediate PNG encode and no
-texture readback. GNOME's final `composite_to_stream()` call remains the only
-readback and PNG encoding pass.
+Preview and retained-cache rendering remain Cairo-based. The SVG renderer uses
+the same tool geometry, line caps, joins, width, colour and highlighter opacity;
+real-session preview/clipboard/PNG parity is a release gate. Cursor composition
+mirrors the offscreen-texture copy used by GNOME Shell itself when it freezes
+the native cursor. The path performs no intermediate PNG encode or texture
+readback. GNOME's final `composite_to_stream()` call remains the only readback
+and PNG encoding pass.
 
 `paint_to_content()` is deliberately not used for annotation output. Mutter
 exposes that method on `Meta.WindowActor` (and a separate variant on

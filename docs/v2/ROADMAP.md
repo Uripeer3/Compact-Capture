@@ -83,7 +83,7 @@ must therefore pass a design checkpoint before implementation resumes.
   pixels may remain recoverable from other files, clipboard history or earlier
   workflow states.
 - Complete the focused design, parity, scale, cursor, lifecycle and performance
-  matrix in [v2_obscure_testing.md](v2_obscure_testing.md) before merge.
+  matrix in [OBSCURE-TESTING.md](OBSCURE-TESTING.md) before merge.
 
 ## PR 20 — Line and ellipse tools
 

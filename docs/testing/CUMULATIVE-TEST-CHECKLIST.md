@@ -344,17 +344,32 @@ empty until rerun on the PR 13 commit in a real GNOME 50 session.
 | [ ] | P13-R1 | Empty, Window, recording and all four drawing-tool paths retain prior behavior. |  |
 | [ ] | P13-X1 | Full journal review contains no unexplained JavaScript, compatibility or gettext error. |  |
 
+## PR 14 - Version 0.1 release candidate
+
+The focused procedure is in [`PR14-TESTING.md`](PR14-TESTING.md). These rows
+must be run against the exact candidate commit; earlier results above remain
+historical evidence.
+
+| Run | ID | Test | Result / evidence |
+| --- | --- | --- | --- |
+| [ ] | P14-B1 | Run Node, syntax, benchmark, both GJS checks, real build and package verification. |  |
+| [ ] | P14-S1 | Complete the Fedora GNOME 50 matrix at 100%, 200% and mixed monitor scales. |  |
+| [ ] | P14-O1 | Verify preview, clipboard and PNG parity for all four tools with pointer off/on. |  |
+| [ ] | P14-O2 | Verify SVG output retains translucent overlap and clean alpha edges. |  |
+| [ ] | P14-P1 | Complete the maximum-point and ten-capture 4K/200% performance matrix. |  |
+| [ ] | P14-L1 | Verify selection-first, accessibility, tooltip and repeated lifecycle behavior. |  |
+| [ ] | P14-R1 | Audit metadata, runtime imports, attribution and actual ZIP contents against current GNOME review rules. |  |
+| [ ] | P14-X1 | Full journal review contains no unexplained Compact Capture, GJS, GdkPixbuf or Cogl error. |  |
+| [ ] | P14-X2 | Record the accepted ZIP SHA-256, reviewer and date before tagging. |  |
+
 ## Current blockers and next run
 
-1. Rerun P11-D2, P11-D4, P11-D5 and the related output-parity rows against the
-   device-pixel alignment fix in `8632eb8`.
-2. Log into a fresh real GNOME session with the pulled build to complete the
-   clipboard, pointer, Window, shortcut and notification matrices.
-3. Use the physical mixed-scale monitors for PR5-S2, PR8-S1, PR9-R1 through
-   PR9-R4 and PR11-N6/D8.
-4. Run the PR10 gesture/freeze cases with real capture activation and use a
-   real touch device for PR10-T1 through PR10-T4.
-5. Run the parent and PR11 4K performance matrices with ten pointer-off and ten
-   pointer-on samples per build.
-6. Complete the PR13 localization, RTL, compatibility and documentation rows
-   before marking the v0.1 release contract ready for hardening.
+1. Rerun every applicable unresolved PR 11 and PR 13 row on the PR 14 candidate;
+   fixes do not rewrite the historical result recorded above.
+2. Validate the new in-memory SVG output path at 100%, 200% and mixed scale,
+   including translucent overlaps and pointer edges.
+3. Use physical mixed-scale monitors and a real touch device for rows that
+   cannot be represented by automated fixtures.
+4. Complete the ten-capture 4K/200% performance run and record RSS evidence.
+5. Build, verify and hash the final ZIP only after the exact candidate commit
+   passes all applicable release rows.

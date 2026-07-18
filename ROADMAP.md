@@ -5,7 +5,7 @@ Each pull request must remain independently reviewable, leave GNOME's native
 capture path usable and include tests for new Shell-independent behaviour.
 
 Manual acceptance is tracked in the
-[cumulative test checklist](docs/CUMULATIVE-TEST-CHECKLIST.md). Starting with
+[cumulative test checklist](docs/testing/CUMULATIVE-TEST-CHECKLIST.md). Starting with
 PR 13, each PR-specific test contract must reference that checklist, add its
 new coverage there and carry forward unresolved applicable rows. Historical
 results remain tied to the commit and environment that produced them; a code
@@ -142,7 +142,8 @@ Status: merged.
 - Align dirty clips outward to cache device pixels and regression-test
   translucent undo/redo with real Cairo at 100% and 200% scale.
 - Require real-session output, alpha, cursor-edge and 4K performance results in
-  `docs/PR11-TESTING.md`; structural Node tests are not treated as pixel proof.
+  `docs/testing/PR11-TESTING.md`; structural Node tests are not treated as
+  pixel proof.
 
 ### PR 12 — Pixelate and blur
 
@@ -154,11 +155,11 @@ Status: closed without merge; deferred to Version 0.2.
 - Preserve the experiment in its branch rather than carrying unused backend
   code into the release.
 - Continue the feature under the independently reviewable Obscure work in the
-  [Version 0.2 roadmap](docs/v2_roadmap.md).
+  [Version 0.2 roadmap](docs/v2/ROADMAP.md).
 
 ### PR 13 — Translations and compatibility
 
-Status: in progress.
+Status: merged.
 
 - Add gettext integration and RTL review.
 - Add explicit supported-version fixtures and fail-open compatibility checks.
@@ -168,17 +169,24 @@ Status: in progress.
 
 ### PR 14 — 0.1 release hardening
 
-- Test real Fedora GNOME sessions at 100%, 200% and mixed monitor scales.
-- Measure long-stroke and 4K capture performance.
-- Verify package contents and extensions.gnome.org review requirements.
-- Publish the 0.1 source archive after manual acceptance testing.
+Status: in progress.
+
+- Remove the Shell-side `Gdk` dependency prohibited by the GNOME extension
+  review rules while preserving in-memory, selection-sized output.
+- Organize historical testing and Version 0.2 documents without changing the
+  established runtime module boundaries.
+- Build and inspect the real extension ZIP in CI, and version repository release
+  tooling as 0.1.0 without adding deprecated metadata fields.
+- Test Fedora GNOME 50 at 100%, 200% and mixed monitor scales, including
+  long-stroke and 4K output performance.
+- Publish the verified 0.1 archive only after the manual release contract passes.
 
 ## After 0.1
 
 Version 0.2 will validate lightweight object editing and prepare the annotation
 architecture for a native GNOME Shell patch series. Its independently
 reviewable PR chain and explicit exclusions are recorded in the
-[Version 0.2 roadmap](docs/v2_roadmap.md).
+[Version 0.2 roadmap](docs/v2/ROADMAP.md).
 
 ## Path to GNOME Shell
 
