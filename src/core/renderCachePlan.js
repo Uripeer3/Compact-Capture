@@ -67,6 +67,7 @@ export function renderCacheUpdate({
     case CommittedChangeType.APPEND:
         return CacheUpdate.APPEND;
     case CommittedChangeType.REMOVE:
+    case CommittedChangeType.REPLACE:
         return CacheUpdate.DIRTY;
     case CommittedChangeType.CLEAR:
         return CacheUpdate.CLEAR;

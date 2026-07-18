@@ -338,3 +338,19 @@ readable clipboard are incomplete even when the saved PNG passed.
    real touch device for PR10-T1 through PR10-T4.
 5. Run the parent and PR11 4K performance matrices with ten pointer-off and ten
    pointer-on samples per build.
+
+## PR 12 - Pixelate and blur
+
+The detailed procedure and environment record live in
+[`PR12-TESTING.md`](PR12-TESTING.md). Results below remain empty until rerun on
+the PR12 commit; implementation or automated coverage alone is not a Pass.
+
+| Run | ID | Test | Result / evidence |
+| --- | --- | --- | --- |
+| [ ] | P12-C1 | Context controls switch between colour/width and Pixelate/Blur/intensity, with focus and hover hints intact. | **NOT RUN**. |
+| [ ] | P12-C2 | Create both treatments, resize every corner, and verify style changes remain one undo action. | **NOT RUN**. |
+| [ ] | P12-O1 | Preview, clipboard and PNG match for Area and Screen at 100%/200%, pointer off/on. | **NOT RUN**. |
+| [ ] | P12-O2 | Mixed-scale spanning selection has no preview/output seam, offset or fringe. | **NOT RUN**. |
+| [ ] | P12-P1 | At 4K/200%, near-full and many-small-region creation, resize, capture, undo and Clear remain bounded. | **NOT RUN**. |
+| [ ] | P12-F1 | Render failure, lifecycle changes and disable leave native capture usable with no stale actor/cursor. | **NOT RUN**. |
+| [ ] | P12-X1 | Privacy wording, full journal and applicable cumulative regressions are accepted. | **NOT RUN**. |

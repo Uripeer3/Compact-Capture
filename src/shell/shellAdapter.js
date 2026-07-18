@@ -21,6 +21,7 @@ import {SignalConnectionSet} from '../core/signalConnectionSet.js';
 import {AnnotatedOutputBridge} from './annotatedOutputBridge.js';
 import {EmptySelectionController} from './emptySelectionController.js';
 import {createAnnotationOutput} from './outputRenderer.js';
+import {createObscurePreview} from './obscureRenderer.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
 const EMPTY_SELECTION_COORDINATE = -1_000_000;
@@ -371,6 +372,25 @@ export class ScreenshotUiAdapter {
                 error
             );
         }
+    }
+
+    createObscurePreview(annotation, stageRect) {
+        if (!this.#active || !this.#sessionOpen)
+            return null;
+        const sourceTexture = this.#screenshotUi._stageScreenshot
+            ?.get_content?.()
+            ?.get_texture?.() ?? null;
+        if (!sourceTexture)
+            return null;
+
+        return createObscurePreview({
+            sourceTexture,
+            annotation,
+            clip: stageRect,
+            sourceScale: Number.isFinite(this.#screenshotUi._scale)
+                ? this.#screenshotUi._scale
+                : 1,
+        });
     }
 
     #connect(connections, target, signal, callback) {

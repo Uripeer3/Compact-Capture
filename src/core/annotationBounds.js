@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import {Tool} from './toolDefinitions.js';
+import {obscureRect} from './obscureDefinitions.js';
 
 const cachedBounds = new WeakMap();
 
@@ -57,6 +58,13 @@ export function annotationBounds(stroke) {
     const cached = cacheable ? cachedBounds.get(stroke) : null;
     if (cached)
         return cached;
+
+    if (stroke.tool === Tool.OBSCURE) {
+        const bounds = obscureRect(stroke);
+        if (cacheable)
+            cachedBounds.set(stroke, bounds);
+        return bounds;
+    }
 
     let extents = extendPointExtents(emptyPointExtents(), stroke.points);
     extents = extendPointExtents(extents, arrowHeadPoints(stroke));

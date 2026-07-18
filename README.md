@@ -19,6 +19,13 @@ previews, undo, redo and clear now work. Conventional `Ctrl+Z`,
 active. Compact Capture does not intercept `Esc`; GNOME retains ownership of
 its screenshot-interface shortcut behaviour.
 
+PR 12 adds one compact Obscure tool. Pixelate is its default treatment; Blur is
+the alternative. A dragged region can be resized from four equal corner
+handles, and the existing compact slider becomes effect intensity while the
+tool is active. Preview processing samples only the affected rectangles and
+the same GPU plan feeds copied and saved output. Pixelate and Blur are visual
+obscuring aids, not secure redaction.
+
 Screenshot, recording, capture-type and area-selection changes now follow one
 explicit lifecycle model. Opening directly in recording mode and later
 returning to screenshots therefore restores the correct empty-area state, and
@@ -91,7 +98,7 @@ loaded modules; after replacing extension files, a fresh login is the reliable
 way to test new JavaScript. Installing a normal extension through GNOME's
 extension service hides most of this discovery and update lifecycle.
 
-See [docs/PR11-TESTING.md](docs/PR11-TESTING.md) for the current real-session
+See [docs/PR12-TESTING.md](docs/PR12-TESTING.md) for the current real-session
 acceptance checklist and the other per-PR testing documents in `docs/` for
 historical checks.
 

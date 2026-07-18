@@ -45,3 +45,23 @@ test('places and clips the pointer in framebuffer clip space', () => {
         y2: 0.09999999999999998,
     });
 });
+
+test('can compose a native pointer without an annotation base layer', () => {
+    const cursorTexture = {};
+    const plan = {
+        pixelWidth: 100,
+        pixelHeight: 50,
+        cursor: {
+            texture: cursorTexture,
+            x: 10,
+            y: 10,
+            width: 20,
+            height: 20,
+        },
+    };
+    const composition = createTextureCompositionPlan(plan, null);
+
+    assert.equal(composition.base, null);
+    assert.equal(composition.layers.length, 1);
+    assert.strictEqual(composition.layers[0].texture, cursorTexture);
+});

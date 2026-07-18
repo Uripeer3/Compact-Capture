@@ -10,10 +10,10 @@ function clipSpaceRectangle(rectangle, pixelWidth, pixelHeight) {
 }
 
 export function createTextureCompositionPlan(outputPlan, baseTexture) {
-    const base = Object.freeze({
+    const base = baseTexture ? Object.freeze({
         texture: baseTexture,
         rectangle: Object.freeze({x1: -1, y1: 1, x2: 1, y2: -1}),
-    });
+    }) : null;
     const cursor = outputPlan.cursor
         ? Object.freeze({
             texture: outputPlan.cursor.texture,
@@ -28,7 +28,7 @@ export function createTextureCompositionPlan(outputPlan, baseTexture) {
     return Object.freeze({
         base,
         cursor,
-        layers: Object.freeze(cursor ? [base, cursor] : [base]),
+        layers: Object.freeze([base, cursor].filter(Boolean)),
         pixelBytes: outputPlan.pixelWidth * outputPlan.pixelHeight * 4,
     });
 }

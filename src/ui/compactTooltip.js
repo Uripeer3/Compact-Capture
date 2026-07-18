@@ -58,6 +58,18 @@ class CompactTooltip extends St.Label {
         this._openFocusedTarget(widget);
     }
 
+    setText(widget, text) {
+        const target = this._targets.get(widget);
+        if (!target)
+            throw new Error('Tooltip target is not attached');
+        target.text = text;
+        if (this._anchor === widget) {
+            this.text = text;
+            if (this.visible)
+                this._showBelowOrAbove();
+        }
+    }
+
     close() {
         this._cancelTimeout();
         this.remove_all_transitions();

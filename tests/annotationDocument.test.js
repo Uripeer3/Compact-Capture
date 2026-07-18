@@ -8,6 +8,9 @@ import {
     MAX_DOCUMENT_POINTS,
     MAX_DOCUMENT_STROKES,
 } from '../src/core/annotationDocument.js';
+import {
+    ObscureTreatment,
+} from '../src/core/obscureDefinitions.js';
 import {Tool} from '../src/core/toolDefinitions.js';
 
 const validStroke = {
@@ -15,6 +18,13 @@ const validStroke = {
     color: '#AABBCC',
     width: 3,
     point: {x: 1, y: 2},
+};
+
+const validObscure = {
+    ...validStroke,
+    tool: Tool.OBSCURE,
+    obscureTreatment: ObscureTreatment.PIXELATE,
+    obscureIntensity: 10,
 };
 
 test('commits a complete stroke as an isolated snapshot', () => {
@@ -249,4 +259,96 @@ test('publishes finite production document limits', () => {
     assert.equal(MAX_DOCUMENT_STROKES, 1_024);
     assert.throws(() => new AnnotationDocument({maxPoints: 1}), RangeError);
     assert.throws(() => new AnnotationDocument({maxStrokes: 0}), RangeError);
+    assert.throws(() => new AnnotationDocument({maxObscureArea: 0}), RangeError);
+});
+
+test('commits bounded obscure rectangles with immutable effect style', () => {
+    const document = new AnnotationDocument({maxObscureArea: 100});
+    assert.equal(document.beginStroke(validObscure), true);
+    assert.equal(document.appendPoint({x: 6, y: 12}), true);
+    assert.equal(document.commitStroke(), true);
+
+    const stroke = document.lastCommitted;
+    assert.equal(document.obscureArea, 50);
+    assert.equal(stroke.obscureTreatment, ObscureTreatment.PIXELATE);
+    assert.equal(stroke.obscureIntensity, 10);
+    assert.ok(Object.isFrozen(stroke));
+    assert.ok(Object.isFrozen(stroke.points));
+});
+
+test('rejects zero-area and over-budget obscure rectangles', () => {
+    const document = new AnnotationDocument({maxObscureArea: 20});
+    document.beginStroke(validObscure);
+    assert.equal(document.replaceEndPoint({x: 11, y: 5}), false);
+    assert.equal(document.replaceEndPoint({x: 5, y: 2}), true);
+    assert.equal(document.commitStroke(), false);
+
+    document.beginStroke(validObscure);
+    assert.equal(document.replaceEndPoint({x: 5, y: 7}), true);
+    assert.equal(document.commitStroke(), true);
+    assert.equal(document.obscureArea, 20);
+});
+
+test('undo frees obscure capacity and redo restores it', () => {
+    const document = new AnnotationDocument({maxObscureArea: 20});
+    document.beginStroke(validObscure);
+    document.replaceEndPoint({x: 5, y: 7});
+    document.commitStroke();
+
+    assert.equal(document.undo(), true);
+    assert.equal(document.obscureArea, 0);
+    assert.equal(document.redo(), true);
+    assert.equal(document.obscureArea, 20);
+    document.clear();
+    assert.equal(document.obscureArea, 0);
+});
+
+test('replaces only the latest obscure as one history action', () => {
+    const document = new AnnotationDocument({maxObscureArea: 1_000});
+    document.beginStroke(validObscure);
+    document.replaceEndPoint({x: 5, y: 7});
+    document.commitStroke();
+
+    const replacement = document.replaceLastObscure({
+        start: {x: 10, y: 10},
+        end: {x: 20, y: 30},
+        obscureTreatment: ObscureTreatment.BLUR,
+        obscureIntensity: 18,
+    });
+    assert.equal(replacement.obscureTreatment, ObscureTreatment.BLUR);
+    assert.equal(document.size, 1);
+    assert.equal(document.obscureArea, 200);
+    assert.deepEqual(document.renderView().committedChange.bounds, {
+        x: 1,
+        y: 2,
+        width: 19,
+        height: 28,
+    });
+
+    assert.equal(document.undo(), true);
+    assert.equal(document.size, 0);
+    assert.equal(document.redo(), true);
+    assert.equal(document.lastCommitted.obscureTreatment, ObscureTreatment.BLUR);
+    assert.equal(document.lastCommitted.obscureIntensity, 18);
+    assert.deepEqual(document.lastCommitted.points, [
+        {x: 10, y: 10},
+        {x: 20, y: 30},
+    ]);
+});
+
+test('does not replace an unrelated or over-budget last annotation', () => {
+    const document = new AnnotationDocument({maxObscureArea: 100});
+    assert.equal(document.replaceLastObscure(), null);
+
+    document.beginStroke(validObscure);
+    document.replaceEndPoint({x: 5, y: 7});
+    document.commitStroke();
+    assert.equal(document.replaceLastObscure({
+        end: {x: 100, y: 100},
+    }), null);
+
+    document.beginStroke(validStroke);
+    document.appendPoint({x: 2, y: 3});
+    document.commitStroke();
+    assert.equal(document.replaceLastObscure(), null);
 });

@@ -11,6 +11,7 @@ import {
     renderAnnotations,
 } from '../core/annotationRenderer.js';
 import {intersectRects} from '../core/geometry.js';
+import {Tool} from '../core/toolDefinitions.js';
 import {
     alignRectToDevicePixels,
     CacheUpdate,
@@ -47,13 +48,30 @@ export class AnnotationRenderCache {
     }
 
     #updateSurface(view, scale) {
+        let hasRenderableCommitted = false;
+        for (const stroke of view.committed) {
+            if (stroke.tool !== Tool.OBSCURE) {
+                hasRenderableCommitted = true;
+                break;
+            }
+        }
+
+        // Obscure content lives in GPU preview actors, never on this Cairo
+        // surface. Sequential Obscure commits, edits and history changes can
+        // advance the shared document revision without dirtying drawing pixels.
+        if (this.#surface && scale === this.#resourceScale &&
+            view.committedRevision === this.#committedRevision + 1 &&
+            view.committedChange?.stroke?.tool === Tool.OBSCURE) {
+            this.#committedRevision = view.committedRevision;
+            return;
+        }
         const update = renderCacheUpdate({
             cachedRevision: this.#committedRevision,
             cachedScale: this.#resourceScale,
             hasSurface: this.#surface !== null,
             nextRevision: view.committedRevision,
             nextScale: scale,
-            hasCommitted: view.committed.length > 0,
+            hasCommitted: hasRenderableCommitted,
             change: view.committedChange,
         });
 

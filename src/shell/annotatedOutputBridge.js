@@ -32,6 +32,12 @@ function snapshotCursor(screenshotUi) {
     });
 }
 
+function snapshotSourceTexture(screenshotUi) {
+    return screenshotUi._stageScreenshot
+        ?.get_content?.()
+        ?.get_texture?.() ?? null;
+}
+
 export class AnnotatedOutputBridge {
     #createOutput;
     #onError;
@@ -62,6 +68,7 @@ export class AnnotatedOutputBridge {
                 selection,
                 outputScale,
                 cursor: cursorSnapshot.cursor,
+                sourceTexture: snapshotSourceTexture(this.#screenshotUi),
             });
             this.#install(output, cursorSnapshot.actor);
         } catch (error) {

@@ -124,7 +124,7 @@ Status: merged.
 
 ### PR 11 — Cursor and output-bridge performance
 
-Status: in progress.
+Status: merged.
 
 - Replace the otherwise-unused PNG encoding pass in cursor composition with a
   supported raw-texture, Cairo or Cogl route.
@@ -145,12 +145,16 @@ Status: in progress.
 
 ### PR 12 — Pixelate and blur
 
+Status: in progress.
+
 - Add one Obscure tool with Pixelate as its default treatment and Blur as the
   alternative.
 - Add rectangular obscure regions, resizing and an intensity control.
 - Guarantee preview, saved PNG and clipboard parity.
 - Bound preview and output work for large regions and older hardware.
 - Explain that visual obscuring is not a substitute for secure redaction.
+- Require real-session acceptance through `docs/PR12-TESTING.md`; pure geometry
+  tests do not prove GPU preview/output parity.
 
 ### PR 13 — Translations and compatibility
 

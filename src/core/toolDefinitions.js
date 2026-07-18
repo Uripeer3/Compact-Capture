@@ -5,6 +5,7 @@ export const Tool = Object.freeze({
     RECTANGLE: 'rectangle',
     ARROW: 'arrow',
     HIGHLIGHTER: 'highlighter',
+    OBSCURE: 'obscure',
 });
 
 export const TOOL_DEFINITIONS = Object.freeze([
@@ -31,6 +32,12 @@ export const TOOL_DEFINITIONS = Object.freeze([
         label: 'Highlighter',
         iconFile: 'icons/highlighter-symbolic.svg',
         defaultWidth: 12,
+    }),
+    Object.freeze({
+        id: Tool.OBSCURE,
+        label: 'Obscure',
+        iconFile: 'icons/obscure-symbolic.svg',
+        defaultWidth: 3,
     }),
 ]);
 

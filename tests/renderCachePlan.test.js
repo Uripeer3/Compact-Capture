@@ -30,6 +30,10 @@ test('updates one sequential committed revision incrementally', () => {
     }), CacheUpdate.DIRTY);
     assert.equal(renderCacheUpdate({
         ...base,
+        change: {type: CommittedChangeType.REPLACE},
+    }), CacheUpdate.DIRTY);
+    assert.equal(renderCacheUpdate({
+        ...base,
         hasCommitted: false,
         change: {type: CommittedChangeType.CLEAR},
     }), CacheUpdate.CLEAR);

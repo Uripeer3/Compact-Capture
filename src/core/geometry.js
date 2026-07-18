@@ -32,6 +32,16 @@ export function intersectRects(first, second) {
     return Object.freeze({x, y, width: right - x, height: bottom - y});
 }
 
+export function unionRects(first, second) {
+    const a = normalizeRect(first);
+    const b = normalizeRect(second);
+    const x = Math.min(a.x, b.x);
+    const y = Math.min(a.y, b.y);
+    const right = Math.max(a.x + a.width, b.x + b.width);
+    const bottom = Math.max(a.y + a.height, b.y + b.height);
+    return Object.freeze({x, y, width: right - x, height: bottom - y});
+}
+
 export function monitorForRect(monitors, rect) {
     const selection = normalizeRect(rect);
     let bestMonitor = null;

@@ -8,6 +8,7 @@ import {
     intersectRects,
     monitorForRect,
     placeToolbar,
+    unionRects,
 } from '../src/core/geometry.js';
 
 const monitors = [
@@ -24,6 +25,13 @@ test('intersects a selection with each monitor in stage coordinates', () => {
         intersectRects({x: 10, y: 10, width: 20, height: 20}, monitors[1]),
         null
     );
+});
+
+test('unions old and new dirty rectangles', () => {
+    assert.deepEqual(unionRects(
+        {x: 10, y: 20, width: 30, height: 40},
+        {x: 25, y: 10, width: 50, height: 20}
+    ), {x: 10, y: 10, width: 65, height: 50});
 });
 
 test('chooses the monitor containing the largest part of a selection', () => {

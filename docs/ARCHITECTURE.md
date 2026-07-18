@@ -41,6 +41,11 @@ Compact Capture owns:
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
 - `core/textureCompositionPlan.js`: pure framebuffer-layer geometry and
   resource accounting.
+- `core/obscureDefinitions.js`: Obscure treatment, intensity and total-area
+  limits.
+- `core/obscureTexturePlan.js`: clipped device-pixel sampling and allocation
+  plans shared by preview and output.
+- `core/obscureSelection.js`: pure corner-handle geometry and resizing rules.
 - `core/selectionLifecycle.js`: explicit screenshot, capture and area-state
   transitions with reversible empty-selection effects.
 - `core/signalConnectionSet.js`: transactional session-scoped signal rebinding
@@ -120,16 +125,33 @@ annotation-side exception cannot prevent the native screenshot UI from working.
 An empty annotation document calls GNOME's original `_saveScreenshot()` with no
 intermediate work or state changes. Window capture remains on that same path.
 
-For an annotated area or screen capture, `shell/outputRenderer.js` creates one
+For an annotated area or screen capture, ordinary drawing annotations use one
 transparent Cairo surface sized to the selected output rather than the whole
 virtual desktop. The shared renderer draws in stage-logical coordinates at the
 native screenshot scale. GDK's supported `pixbuf_get_from_surface()` conversion
 then supplies the RGBA pixels to a Shell image texture; the extension does not
-read Cairo's private backing buffer. With the pointer disabled, that uploaded
-texture is handed to GNOME directly. With the pointer enabled, a Cogl
-offscreen framebuffer draws the annotation and native cursor textures into one
-new texture. The cursor rectangle is calculated in output pixels and clips at
-the selection boundary.
+read Cairo's private backing buffer.
+
+Obscure annotations are source-dependent and therefore never enter that
+transparent Cairo cache. The adapter reads GNOME's already captured
+`_stageScreenshot` texture. Each clipped Obscure rectangle is downsampled into
+a small GPU texture; nearest-neighbour expansion produces Pixelate and linear
+expansion produces Blur. The final offscreen texture draws affected source
+regions first, then transparent drawing annotations and the native cursor. The
+same clipped device-pixel plan drives preview and output.
+
+Total Obscure area is capped at 8,388,608 logical pixels. At the minimum
+four-logical-pixel intensity, all downsample textures together are bounded to
+about 2 MiB regardless of resource scale. Pointer motion while creating a
+region updates only its outline; source sampling happens after commit. During
+resize, the outline follows the pointer and one immutable replacement plus one
+new sample occurs on release. The selection-sized final texture is allocated
+only at capture time.
+
+With only ordinary annotations and the pointer disabled, the uploaded Cairo
+texture is handed to GNOME directly. Cogl composition is used when Obscure or
+the pointer is present. The cursor rectangle is calculated in output pixels and
+clips at the selection boundary.
 
 This mirrors the offscreen-texture copy used by GNOME Shell itself when it
 freezes the native cursor. It performs no intermediate PNG encode and no
@@ -169,8 +191,9 @@ propagation behaviour.
 `ui/compactToolbar.js` ports Gradia Capture's toolbar interaction pattern
 without its settings, drawing-canvas or controller dependencies. It owns only
 Shell widgets and emits semantic tool/style/action signals.
-`core/toolbarState.js` stores the selected tool, palette colour and a remembered
-line width for each tool independently of Shell. Highlighter therefore retains
+`core/toolbarState.js` stores the selected tool, palette colour, Obscure
+treatment/intensity and a remembered line width for each drawing tool
+independently of Shell. Highlighter therefore retains
 its wider default without changing the width of the regular drawing tools. The
 state is unit-testable and survives switching temporarily into recording mode.
 
@@ -229,7 +252,8 @@ edge.
 
 ## Overlay boundary
 
-`ui/annotationOverlay.js` owns pointer/touch gestures and Cairo preview only.
+`ui/annotationOverlay.js` owns pointer/touch gestures, drawing preview and
+Obscure preview actors only.
 It stores stage-logical points in the Shell-independent annotation document.
 Small drawing actors cover only the selected region on each intersecting
 monitor; an eight-pixel outer gutter remains available to GNOME's native resize
@@ -274,6 +298,12 @@ compares it with repeated shared render-view lookup. Monitor intersection and
 toolbar placement rules live in `core/geometry.js` and are covered by Node
 tests, including secondary-monitor examples.
 
+Only the latest committed Obscure region exposes four resize handles in v0.1.
+The outline is overlay-only and never enters output. A resize keeps the
+opposite corner anchored, replaces one immutable region on release, and remains
+one undo history action. General annotation selection and object editing remain
+deferred to v0.2.
+
 The small `AsyncTaskGate`, `SignalConnectionSet` and `GestureSequence` helpers
 are extension scaffolding extracted so prototype invariants can be tested in
 Node. A native GNOME patch should reuse existing Shell patterns where they
@@ -285,7 +315,7 @@ only `_saveScreenshot()` and always delegates storage to its original method.
 
 ## Deliberate exclusions
 
-Version 0.1 will add pixelate and blur but will not provide text, numbered
+Version 0.1 includes pixelate and blur but will not provide text, numbered
 markers, selecting and moving existing annotations, alternate image formats,
 Save As, custom storage, custom notifications, OCR or external-editor
 integration. These require additional interaction design or ownership beyond

@@ -114,6 +114,12 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
             );
         }
 
+        if (typeof screenshotUi._stageScreenshot?.get_content !== 'function') {
+            issues.push(
+                'Main.screenshotUI._stageScreenshot.get_content is unavailable'
+            );
+        }
+
         for (const field of [
             '_shotButton',
             '_selectionButton',

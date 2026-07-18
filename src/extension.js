@@ -127,6 +127,24 @@ export default class CompactCaptureExtension extends Extension {
         toolbar.connect('clear', () => {
             this._clear();
         });
+        toolbar.connect('tool-changed', () => {
+            this._repaintOverlays();
+            this._placeToolbar(toolbarMonitor);
+        });
+        toolbar.connect('obscure-treatment-changed', (_toolbar, treatment) => {
+            if (this._document.replaceLastObscure({
+                obscureTreatment: treatment,
+            })) {
+                this._repaintOverlays();
+            }
+        });
+        toolbar.connect('obscure-intensity-changed', (_toolbar, intensity) => {
+            if (this._document.replaceLastObscure({
+                obscureIntensity: intensity,
+            })) {
+                this._repaintOverlays();
+            }
+        });
 
         if (!this._shellAdapter.mountToolbar(toolbar)) {
             toolbar.destroy();
@@ -146,6 +164,8 @@ export default class CompactCaptureExtension extends Extension {
                 document: this._document,
                 toolbarState: this._toolbarState,
                 stageRect,
+                createObscurePreview: (annotation, clip) =>
+                    this._shellAdapter.createObscurePreview(annotation, clip),
                 onDocumentChanged: () => this._repaintOverlays(),
             });
             overlay.setInputEnabled(this._annotationInputEnabled);
@@ -208,7 +228,7 @@ export default class CompactCaptureExtension extends Extension {
 
     _repaintOverlays() {
         for (const overlay of this._overlays)
-            overlay.queue_repaint();
+            overlay.queueAnnotationRepaint();
         this._syncToolbarActions();
     }
 
@@ -238,7 +258,8 @@ export default class CompactCaptureExtension extends Extension {
             return false;
 
         let changed;
-        if (this._document.isDrawing) {
+        if (this._document.isDrawing ||
+            this._overlays.some(overlay => overlay.hasActiveGesture)) {
             this._cancelActiveGestures();
             changed = true;
         } else {

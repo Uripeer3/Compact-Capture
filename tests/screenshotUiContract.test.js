@@ -30,6 +30,7 @@ function compatibleUi() {
         _screenButton = new MockToggle();
         _windowButton = new MockToggle();
         _captureButton = {reactive: true};
+        _stageScreenshot = {get_content() {}};
         _screenSelectors = [new MockToggle()];
         _cursor = {
             content: null,
@@ -135,6 +136,7 @@ test('reports every missing contract member instead of failing at first use', ()
         'Main.screenshotUI._areaSelector._bottomLeftHandle.opacity is unavailable',
         'Main.screenshotUI._areaSelector._bottomRightHandle.opacity is unavailable',
         'Main.screenshotUI._captureButton.reactive is unavailable',
+        'Main.screenshotUI._stageScreenshot.get_content is unavailable',
         'Main.screenshotUI._shotButton.checked is unavailable',
         'Main.screenshotUI._shotButton.connect is unavailable',
         'Main.screenshotUI._shotButton.disconnect is unavailable',

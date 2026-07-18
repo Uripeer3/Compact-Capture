@@ -28,7 +28,14 @@ function fixture({createOutput, nativeSave}) {
             this.y = y;
         },
     };
-    const screenshotUi = {_cursor: actor, _cursorScale: 1.5};
+    const sourceTexture = {name: 'stage-screenshot'};
+    const screenshotUi = {
+        _cursor: actor,
+        _cursorScale: 1.5,
+        _stageScreenshot: {
+            get_content: () => ({get_texture: () => sourceTexture}),
+        },
+    };
     const errors = [];
     const bridge = new AnnotatedOutputBridge({
         screenshotUi,
@@ -42,6 +49,7 @@ function fixture({createOutput, nativeSave}) {
         errors,
         originalContent,
         screenshotUi,
+        sourceTexture,
         save: () => bridge.save({
             screenshotUi,
             originalMethod: nativeSave,
@@ -79,6 +87,7 @@ test('installs one output texture and restores the native cursor', async () => {
         height: 48,
         scale: 1.5,
     });
+    assert.strictEqual(received.sourceTexture, setup.sourceTexture);
     assert.equal(setup.actor.content, setup.originalContent);
     assert.equal(setup.actor.opacity, 255);
     assert.equal(setup.screenshotUi._cursorScale, 1.5);

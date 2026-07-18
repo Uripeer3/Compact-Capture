@@ -22,10 +22,10 @@ language, capture controls and interaction model.
 The toolbar contains, in order:
 
 - freehand, rectangle, arrow, highlighter and Obscure tools;
-- the colour palette;
+- the colour palette, or Pixelate/Blur treatment choices when Obscure is
+  active;
 - line width or effect intensity for the selected tool;
 - undo, redo and clear actions;
-- an Obscure treatment control when that tool is active.
 
 Use 16-pixel symbolic artwork inside compact focusable buttons. Every icon-only
 control requires an accessible name and a delayed hover hint. Selected, hover,

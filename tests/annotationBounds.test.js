@@ -37,6 +37,20 @@ test('includes both arrowhead arms in dirty bounds', () => {
     assert.ok(bounds.x + bounds.width >= 23);
 });
 
+test('uses the exact source-dependent obscure rectangle', () => {
+    assert.deepEqual(annotationBounds({
+        tool: Tool.OBSCURE,
+        color: '#ffffff',
+        width: 3,
+        points: [{x: 30, y: 50}, {x: 10, y: 20}],
+    }), {
+        x: 10,
+        y: 20,
+        width: 20,
+        height: 30,
+    });
+});
+
 test('detects only bounds with a non-empty intersection', () => {
     const first = {x: 0, y: 0, width: 10, height: 10};
     assert.equal(boundsIntersect(first, {

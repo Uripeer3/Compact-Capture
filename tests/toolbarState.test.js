@@ -3,6 +3,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import {
+    DEFAULT_OBSCURE_INTENSITY,
+    ObscureTreatment,
+} from '../src/core/obscureDefinitions.js';
 import {Tool} from '../src/core/toolDefinitions.js';
 import {ToolbarState} from '../src/core/toolbarState.js';
 
@@ -13,6 +17,8 @@ test('provides stable defaults for a new screenshot session', () => {
         tool: Tool.FREEHAND,
         color: '#ed333b',
         lineWidth: 3,
+        obscureTreatment: ObscureTreatment.PIXELATE,
+        obscureIntensity: DEFAULT_OBSCURE_INTENSITY,
     });
 });
 
@@ -26,6 +32,23 @@ test('keeps valid tool style changes together', () => {
         tool: Tool.HIGHLIGHTER,
         color: '#f6d32d',
         lineWidth: 12.5,
+        obscureTreatment: ObscureTreatment.PIXELATE,
+        obscureIntensity: DEFAULT_OBSCURE_INTENSITY,
+    });
+});
+
+test('keeps obscure treatment and intensity independently of drawing style', () => {
+    const state = new ToolbarState();
+    state.selectTool(Tool.OBSCURE);
+    state.setObscureTreatment(ObscureTreatment.BLUR);
+    state.setObscureIntensity(18);
+
+    assert.deepEqual(state.snapshot(), {
+        tool: Tool.OBSCURE,
+        color: '#ed333b',
+        lineWidth: 3,
+        obscureTreatment: ObscureTreatment.BLUR,
+        obscureIntensity: 18,
     });
 });
 
@@ -73,4 +96,7 @@ test('rejects unsupported toolbar values', () => {
     assert.throws(() => state.setLineWidth(0), RangeError);
     assert.throws(() => state.setLineWidth(17), RangeError);
     assert.throws(() => state.setLineWidth(Number.NaN), RangeError);
+    assert.throws(() => state.setObscureTreatment('redact'), TypeError);
+    assert.throws(() => state.setObscureIntensity(3), RangeError);
+    assert.throws(() => state.setObscureIntensity(25), RangeError);
 });
