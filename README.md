@@ -49,6 +49,7 @@ The initial checks require only Node.js and have no third-party dependencies:
 ```sh
 npm test
 npm run check
+npm run benchmark
 ```
 
 Once the GNOME adapter lands, building the extension will additionally require

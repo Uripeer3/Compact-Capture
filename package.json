@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "find src tests -name '*.js' -exec node --check {} +",
+    "benchmark": "node benchmarks/documentRenderView.js",
+    "check": "find src tests benchmarks -name '*.js' -exec node --check {} +",
     "test": "node --test"
   }
 }
-
