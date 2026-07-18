@@ -36,6 +36,12 @@ window captures and screen recordings continue through GNOME unchanged. The
 project remains pre-release while editing completeness and compatibility work
 continue.
 
+Capture preparation is atomic: a visible drawing gesture is resolved before
+one isolated document snapshot is taken, annotation controls remain
+insensitive until GNOME's asynchronous save settles and repeated save requests
+share that same operation. Single-touch drawing follows the initiating
+Clutter event sequence, so another finger cannot move, finish or cancel it.
+
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.
 

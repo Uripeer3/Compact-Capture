@@ -94,7 +94,7 @@ Status: merged.
 
 ### PR 9 — Selection lifecycle correctness
 
-Status: in progress.
+Status: merged.
 
 - Model screenshot mode, capture type and empty-area state as explicit
   lifecycle transitions.
@@ -105,6 +105,8 @@ Status: in progress.
   ScreenshotUI access inside the adapter.
 
 ### PR 10 — Atomic capture and input ownership
+
+Status: in progress.
 
 - Commit or cancel the visible draft before freezing one output snapshot.
 - Disable annotation input for the duration of native asynchronous capture and

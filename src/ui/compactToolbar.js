@@ -66,6 +66,12 @@ export const CompactToolbar = GObject.registerClass({
         this._toolButtons = new Map();
         this._colorButtons = new Map();
         this._tooltip = new CompactTooltip();
+        this._inputEnabled = true;
+        this._actionSensitivity = {
+            canUndo: false,
+            canRedo: false,
+            canClear: false,
+        };
 
         this._buildToolButtons();
         this._addSeparator();
@@ -102,9 +108,17 @@ export const CompactToolbar = GObject.registerClass({
     }
 
     setActionSensitivity({canUndo, canRedo, canClear}) {
-        this._setButtonSensitivity(this._undoButton, canUndo);
-        this._setButtonSensitivity(this._redoButton, canRedo);
-        this._setButtonSensitivity(this._clearButton, canClear);
+        this._actionSensitivity = {canUndo, canRedo, canClear};
+        this._syncControlSensitivity();
+    }
+
+    setInputEnabled(enabled) {
+        const normalized = Boolean(enabled);
+        if (this._inputEnabled === normalized)
+            return;
+
+        this._inputEnabled = normalized;
+        this._syncControlSensitivity();
     }
 
     _buildToolButtons() {
@@ -212,16 +226,41 @@ export const CompactToolbar = GObject.registerClass({
         this._tooltip = null;
     }
 
-    _setButtonSensitivity(button, sensitive) {
-        if (button.reactive === sensitive &&
-            button.can_focus === sensitive) {
+    _setControlSensitivity(control, sensitive) {
+        if (control.reactive === sensitive &&
+            control.can_focus === sensitive) {
             return;
         }
 
         if (!sensitive)
-            this._tooltip.closeFor(button);
-        button.reactive = sensitive;
-        button.can_focus = sensitive;
+            this._tooltip.closeFor(control);
+        control.reactive = sensitive;
+        control.can_focus = sensitive;
+    }
+
+    _syncControlSensitivity() {
+        for (const button of this._toolButtons.values())
+            this._setControlSensitivity(button, this._inputEnabled);
+        for (const button of this._colorButtons.values())
+            this._setControlSensitivity(button, this._inputEnabled);
+        this._setControlSensitivity(
+            this._lineWidthSlider,
+            this._inputEnabled
+        );
+
+        const {canUndo, canRedo, canClear} = this._actionSensitivity;
+        this._setControlSensitivity(
+            this._undoButton,
+            this._inputEnabled && canUndo
+        );
+        this._setControlSensitivity(
+            this._redoButton,
+            this._inputEnabled && canRedo
+        );
+        this._setControlSensitivity(
+            this._clearButton,
+            this._inputEnabled && canClear
+        );
     }
 
     _addSeparator() {

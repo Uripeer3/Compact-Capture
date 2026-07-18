@@ -30,6 +30,10 @@ Compact Capture owns:
 - `extension.js`: small lifecycle coordinator.
 - `shell/shellAdapter.js`: private GNOME access and compatibility checks.
 - `core/annotationDocument.js`: pure, testable document and history model.
+- `core/capturePreparation.js`: reversible input lock and atomic snapshot
+  preparation.
+- `core/asyncTaskGate.js`: one shared promise for concurrent native saves.
+- `core/gestureSequence.js`: pointer-button and touch-sequence ownership.
 - `core/keyboardShortcuts.js`: pure shortcut-to-action mapping.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
@@ -118,9 +122,20 @@ the original `_saveScreenshot()`, then restores the native cursor actor in a
 MIME data, filename selection, lockdown policy, sound and notifications. No
 GNOME storage code is copied into the extension.
 
-Only one annotated capture may prepare output at a time. A rendering or texture
-error is logged and fails open to an unmodified GNOME capture; errors after the
-native save starts retain GNOME's existing propagation behaviour.
+Before output preparation, the extension resolves the visible draft through
+its owning overlay, disables every annotation overlay and toolbar control, and
+then takes one isolated snapshot. The adapter passes only that frozen snapshot
+to the output renderer. Input remains disabled until the native asynchronous
+save settles; its release callback is idempotent so ScreenshotUI closing or the
+extension disabling during a save cannot re-enable destroyed actors.
+
+One Shell-independent asynchronous gate owns the complete prepare, render and
+native-save operation. Concurrent capture requests receive the same promise
+and cannot prepare a second snapshot. The gate reopens after success or error.
+A rendering or texture error is logged and fails open to an unmodified GNOME
+capture, with annotation input restored only after that native fallback
+settles. Errors after the native save starts retain GNOME's existing
+propagation behaviour.
 
 ## Toolbar boundary
 
@@ -192,6 +207,13 @@ Small drawing actors cover only the selected region on each intersecting
 monitor; an eight-pixel outer gutter remains available to GNOME's native resize
 handles. Starting a native selection drag removes the overlays and controls,
 then rebuilds them from the completed geometry.
+
+Each gesture has one explicit input owner. Pointer gestures retain their
+initiating button. Touch gestures retain the slot from the initiating
+`Clutter.EventSequence`, matching GNOME's native selector; updates, ends and
+cancellations from every other sequence propagate unchanged. Capture commits
+a complete visible draft (or naturally drops an incomplete one-point draft),
+releases its stage grab and prevents further gesture input before snapshotting.
 
 Freehand input is sampled at a two-logical-pixel threshold and capped at 4096
 points per gesture. The complete document, including undo/redo history and an

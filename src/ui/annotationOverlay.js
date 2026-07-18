@@ -5,6 +5,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {renderAnnotation} from '../core/annotationRenderer.js';
+import {GestureSequence} from '../core/gestureSequence.js';
 import {
     DEFAULT_SAMPLE_DISTANCE,
     MAX_STROKE_POINTS,
@@ -14,6 +15,10 @@ import {Tool} from '../core/toolDefinitions.js';
 import {AnnotationRenderCache} from './annotationRenderCache.js';
 
 const FREEFORM_TOOLS = new Set([Tool.FREEHAND, Tool.HIGHLIGHTER]);
+
+function touchSequenceSlot(event) {
+    return event.get_event_sequence()?.get_slot();
+}
 
 export const AnnotationOverlay = GObject.registerClass(
 class AnnotationOverlay extends St.DrawingArea {
@@ -47,7 +52,8 @@ class AnnotationOverlay extends St.DrawingArea {
         this._stageRect = {...stageRect};
         this._onDocumentChanged = onDocumentChanged;
         this._drawing = false;
-        this._dragButton = 0;
+        this._gestureSequence = new GestureSequence();
+        this._inputEnabled = true;
         this._dragGrab = null;
         this._lastPoint = null;
         this._pointCount = 0;
@@ -66,34 +72,51 @@ class AnnotationOverlay extends St.DrawingArea {
         if (this._drawing)
             this._document.cancelStroke();
 
-        this._drawing = false;
-        this._dragButton = 0;
-        this._lastPoint = null;
-        this._pointCount = 0;
-        this._activeTool = null;
-        this._releaseGrab();
+        this._resetGesture();
+    }
+
+    finishGestureForCapture() {
+        if (!this._drawing)
+            return false;
+
+        const committed = this._document.commitStroke();
+        this._resetGesture();
+        this._notifyDocumentChanged();
+        return committed;
+    }
+
+    setInputEnabled(enabled) {
+        this._inputEnabled = Boolean(enabled);
+        this.reactive = this._inputEnabled;
     }
 
     vfunc_button_press_event(event) {
-        if (this._drawing || event.get_button() !== Clutter.BUTTON_PRIMARY)
+        if (!this._inputEnabled || this._drawing ||
+            event.get_button() !== Clutter.BUTTON_PRIMARY) {
             return Clutter.EVENT_PROPAGATE;
+        }
 
-        this._dragButton = event.get_button();
-        this._beginGesture(event.get_coords());
+        if (!this._beginGesture(event.get_coords()))
+            return Clutter.EVENT_PROPAGATE;
+        this._gestureSequence.beginPointer(event.get_button());
         return Clutter.EVENT_STOP;
     }
 
     vfunc_button_release_event(event) {
-        if (!this._drawing || event.get_button() !== this._dragButton)
+        if (!this._inputEnabled || !this._drawing ||
+            !this._gestureSequence.ownsPointer(event.get_button())) {
             return Clutter.EVENT_PROPAGATE;
+        }
 
         this._finishGesture(event.get_coords());
         return Clutter.EVENT_STOP;
     }
 
     vfunc_motion_event(event) {
-        if (!this._drawing)
+        if (!this._inputEnabled || !this._drawing ||
+            !this._gestureSequence.isPointer) {
             return Clutter.EVENT_PROPAGATE;
+        }
 
         this._updateGesture(event.get_coords());
         return Clutter.EVENT_STOP;
@@ -102,24 +125,33 @@ class AnnotationOverlay extends St.DrawingArea {
     vfunc_touch_event(event) {
         const eventType = event.type();
         if (eventType === Clutter.EventType.TOUCH_BEGIN) {
-            if (this._drawing)
+            if (!this._inputEnabled || this._drawing)
                 return Clutter.EVENT_PROPAGATE;
-            this._dragButton = 'touch';
-            this._beginGesture(event.get_coords());
+            const sequenceSlot = touchSequenceSlot(event);
+            if (sequenceSlot === null || sequenceSlot === undefined)
+                return Clutter.EVENT_PROPAGATE;
+            if (!this._beginGesture(event.get_coords()))
+                return Clutter.EVENT_PROPAGATE;
+            this._gestureSequence.beginTouch(sequenceSlot);
             return Clutter.EVENT_STOP;
         }
 
-        if (eventType === Clutter.EventType.TOUCH_UPDATE && this._drawing) {
+        if (!this._inputEnabled || !this._drawing ||
+            !this._gestureSequence.ownsTouch(touchSequenceSlot(event))) {
+            return Clutter.EVENT_PROPAGATE;
+        }
+
+        if (eventType === Clutter.EventType.TOUCH_UPDATE) {
             this._updateGesture(event.get_coords());
             return Clutter.EVENT_STOP;
         }
 
-        if (eventType === Clutter.EventType.TOUCH_END && this._drawing) {
+        if (eventType === Clutter.EventType.TOUCH_END) {
             this._finishGesture(event.get_coords());
             return Clutter.EVENT_STOP;
         }
 
-        if (eventType === Clutter.EventType.TOUCH_CANCEL && this._drawing) {
+        if (eventType === Clutter.EventType.TOUCH_CANCEL) {
             this.cancelGesture();
             this._notifyDocumentChanged();
             return Clutter.EVENT_STOP;
@@ -155,7 +187,7 @@ class AnnotationOverlay extends St.DrawingArea {
             point,
         });
         if (!started)
-            return;
+            return false;
 
         this._drawing = true;
         this._activeTool = style.tool;
@@ -163,6 +195,7 @@ class AnnotationOverlay extends St.DrawingArea {
         this._pointCount = 1;
         this._dragGrab = global.stage.grab(this);
         this._notifyDocumentChanged();
+        return true;
     }
 
     _updateGesture([x, y], force = false) {
@@ -201,13 +234,17 @@ class AnnotationOverlay extends St.DrawingArea {
     _finishGesture(coords) {
         this._updateGesture(coords, true);
         this._document.commitStroke();
+        this._resetGesture();
+        this._notifyDocumentChanged();
+    }
+
+    _resetGesture() {
         this._drawing = false;
-        this._dragButton = 0;
+        this._gestureSequence.clear();
         this._lastPoint = null;
         this._pointCount = 0;
         this._activeTool = null;
         this._releaseGrab();
-        this._notifyDocumentChanged();
     }
 
     _releaseGrab() {
