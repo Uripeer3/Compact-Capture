@@ -11,8 +11,8 @@ npm run check
 ## Interaction targets and states
 
 1. Open area capture, drag a selection and compare every tool, colour and
-   action button. Their hit areas should be equal even though the artwork stays
-   at 16 logical pixels.
+   action button. Their hit areas should be equal even though the colour
+   swatches and symbolic artwork remain visually smaller.
 2. Hover, press and select each tool. Hover, active and checked states must be
    visually distinct in both the light and dark Shell styles.
 3. Draw one stroke, then exercise Undo, Redo and Clear. Disabled actions must
