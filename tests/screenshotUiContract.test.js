@@ -31,6 +31,16 @@ function compatibleUi() {
         _windowButton = new MockToggle();
         _captureButton = {reactive: true};
         _screenSelectors = [new MockToggle()];
+        _cursor = {
+            content: null,
+            visible: false,
+            opacity: 255,
+            x: 0,
+            y: 0,
+            set_content() {},
+            set_position() {},
+        };
+        _cursorScale = 1;
         _areaSelector = {
             _startX: 0,
             _startY: 0,
@@ -53,6 +63,7 @@ function compatibleUi() {
         };
 
         open() {}
+        _saveScreenshot() {}
         connect() {}
         disconnect() {}
         add_child() {}
@@ -104,6 +115,7 @@ test('reports every missing contract member instead of failing at first use', ()
         'Main.screenshotUI.transform_stage_point is unavailable',
         'Main.screenshotUI.visible is unavailable',
         'Main.screenshotUI.open is not defined on its direct prototype',
+        'Main.screenshotUI._saveScreenshot is not defined on its direct prototype',
         'Main.screenshotUI._primaryMonitorBin.add_child is unavailable',
         'Main.screenshotUI._primaryMonitorBin.remove_child is unavailable',
         'Main.screenshotUI._areaSelector.connect is unavailable',
@@ -136,5 +148,11 @@ test('reports every missing contract member instead of failing at first use', ()
         'Main.screenshotUI._windowButton.connect is unavailable',
         'Main.screenshotUI._windowButton.disconnect is unavailable',
         'Main.screenshotUI._screenSelectors is unavailable',
+        'Main.screenshotUI._cursor.set_content is unavailable',
+        'Main.screenshotUI._cursor.set_position is unavailable',
+        'Main.screenshotUI._cursor.visible is unavailable',
+        'Main.screenshotUI._cursor.x is unavailable',
+        'Main.screenshotUI._cursor.y is unavailable',
+        'Main.screenshotUI._cursor.opacity is unavailable',
     ]);
 });

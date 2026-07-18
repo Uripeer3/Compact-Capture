@@ -37,7 +37,7 @@ Status: merged.
 
 ## PR 4 — Monitor-aware annotation overlay
 
-Status: implemented in this pull request.
+Status: merged.
 
 - Add drawing canvases without replacing GNOME's selection UI.
 - Start area mode without GNOME's default rectangle and show a compact hint.
@@ -49,6 +49,8 @@ Status: implemented in this pull request.
 - Add point sampling and bounded repaint work for older hardware.
 
 ## PR 5 — Native output bridge
+
+Status: implemented in this pull request.
 
 - If the document is empty, invoke GNOME's original save path unchanged.
 - If annotated, render one final texture and hand it to GNOME's native

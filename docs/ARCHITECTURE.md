@@ -31,6 +31,8 @@ Compact Capture owns:
 - `shell/shellAdapter.js`: private GNOME access and compatibility checks.
 - `core/annotationDocument.js`: pure, testable state model.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
+- `core/outputPlan.js`: output-scale and cursor placement calculations.
+- `shell/outputRenderer.js`: selection-sized transparent output texture.
 - `ui/annotationOverlay.js`: monitor-aware pointer and touch interaction.
 - `ui/compactToolbar.js`: accessible Shell UI.
 
@@ -45,8 +47,8 @@ screenshot behaviour must continue unchanged.
 
 `shell/shellAdapter.js` is the only module allowed to import
 `Main.screenshotUI`, read one of its private fields or intercept one of its
-methods. It wraps only `open()` on ScreenshotUI's direct prototype and observes
-the native `closed` and
+methods. It wraps `open()` and `_saveScreenshot()` on ScreenshotUI's direct
+prototype and observes the native `closed` and
 screenshot/recording mode signals. Patching the prototype allows
 `InjectionManager` to restore the exact original ownership and method. The
 wrapper awaits and returns the original result; it does not catch, translate or
@@ -71,6 +73,34 @@ rolled back. Disabling disconnects the signal and clears `InjectionManager`.
 
 Callbacks from Compact Capture are isolated from GNOME's open/close path so an
 annotation-side exception cannot prevent the native screenshot UI from working.
+
+## Output boundary
+
+An empty annotation document calls GNOME's original `_saveScreenshot()` with no
+intermediate work or state changes. Window capture remains on that same path.
+
+For an annotated area or screen capture, `shell/outputRenderer.js` creates one
+transparent Cairo surface sized to the selected output rather than the whole
+virtual desktop. The shared renderer draws in stage-logical coordinates at the
+native screenshot scale. GDK's supported `pixbuf_get_from_surface()` conversion
+then supplies the RGBA pixels to a Shell image texture; the extension does not
+read Cairo's private backing buffer. If GNOME's pointer option is active, the
+native cursor is folded into that texture first.
+
+`paint_to_content()` is deliberately not used for annotation output. Mutter
+exposes that method on `Meta.WindowActor` (and a separate variant on
+`Clutter.Stage`), not on a general `St.DrawingArea`.
+
+The adapter temporarily exposes this final texture through the cursor overlay
+arguments already consumed by GNOME's `captureScreenshot()` pipeline, invokes
+the original `_saveScreenshot()`, then restores the native cursor actor in a
+`finally` block. GNOME therefore still owns cropping, PNG encoding, clipboard
+MIME data, filename selection, lockdown policy, sound and notifications. No
+GNOME storage code is copied into the extension.
+
+Only one annotated capture may prepare output at a time. A rendering or texture
+error is logged and fails open to an unmodified GNOME capture; errors after the
+native save starts retain GNOME's existing propagation behaviour.
 
 ## Toolbar boundary
 
@@ -122,8 +152,8 @@ work therefore remains bounded even on long strokes. Coordinate conversion and
 toolbar placement rules live in `core/geometry.js` and are covered by Node
 tests, including secondary-monitor and mixed-output-scale examples.
 
-Window annotation and final image compositing are deliberately absent in PR 4.
-No save, clipboard, notification or capture method is intercepted.
+Window annotation remains deliberately absent. The output bridge intercepts
+only `_saveScreenshot()` and always delegates storage to its original method.
 
 ## Deliberate exclusions
 
