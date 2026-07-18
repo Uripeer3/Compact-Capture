@@ -58,7 +58,7 @@ markers, object selection and external export integrations are deferred.
 
 ### PR 6 — Editing history and project contract
 
-Status: in progress.
+Status: merged.
 
 - Add redo with deterministic history invalidation.
 - Add conventional undo/redo shortcuts without intercepting unrelated GNOME
@@ -68,13 +68,16 @@ Status: in progress.
 
 ### PR 7 — GNOME visual and accessibility polish
 
+Status: in progress.
+
 - Implement the approved compact spacing and state treatment from the design
   specification.
-- Verify symbolic icons, hover hints, keyboard focus, contrast and touch target
-  behaviour without enlarging the toolbar unnecessarily.
+- Give every button the same compact hit target and verify symbolic icons,
+  contrast, keyboard focus, checked and insensitive states.
 - Replace the per-control tooltip actors with one toolbar-owned tooltip
   controller, including keyboard-focus hints and rapid-transition tests.
-- Keep the toolbar outside the selected output whenever monitor space permits.
+- Keep the toolbar outside the selected output whenever monitor space permits,
+  with balanced fallback placement on narrow monitors.
 
 ### PR 8 — Pixelate and blur
 

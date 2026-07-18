@@ -65,8 +65,7 @@ export const CompactToolbar = GObject.registerClass({
         this._extensionPath = extensionPath;
         this._toolButtons = new Map();
         this._colorButtons = new Map();
-        this._tooltips = [];
-        this._tooltipsByWidget = new Map();
+        this._tooltip = new CompactTooltip();
 
         this._buildToolButtons();
         this._addSeparator();
@@ -83,7 +82,7 @@ export const CompactToolbar = GObject.registerClass({
             canRedo: false,
             canClear: false,
         });
-        this.connect('destroy', () => this._destroyTooltips());
+        this.connect('destroy', () => this._destroyTooltip());
     }
 
     get selectedTool() {
@@ -99,7 +98,7 @@ export const CompactToolbar = GObject.registerClass({
     }
 
     get auxiliaryActors() {
-        return [...this._tooltips];
+        return [this._tooltip];
     }
 
     setActionSensitivity({canUndo, canRedo, canClear}) {
@@ -202,17 +201,12 @@ export const CompactToolbar = GObject.registerClass({
     }
 
     _attachTooltip(widget, text) {
-        const tooltip = new CompactTooltip(widget, text);
-        this._tooltips.push(tooltip);
-        this._tooltipsByWidget.set(widget, tooltip);
+        this._tooltip.attach(widget, text);
     }
 
-    _destroyTooltips() {
-        for (const tooltip of this._tooltips.splice(0)) {
-            tooltip.close();
-            tooltip.destroy();
-        }
-        this._tooltipsByWidget.clear();
+    _destroyTooltip() {
+        this._tooltip?.destroy();
+        this._tooltip = null;
     }
 
     _setButtonSensitivity(button, sensitive) {
@@ -222,7 +216,7 @@ export const CompactToolbar = GObject.registerClass({
         }
 
         if (!sensitive)
-            this._tooltipsByWidget.get(button)?.close();
+            this._tooltip.closeFor(button);
         button.reactive = sensitive;
         button.can_focus = sensitive;
     }

@@ -117,6 +117,14 @@ function clamp(value, minimum, maximum) {
     return Math.min(Math.max(value, minimum), maximum);
 }
 
+function fallbackCoordinate(start, size, itemSize, margin) {
+    const availableSize = size - margin * 2;
+    if (itemSize > availableSize)
+        return start + (size - itemSize) / 2;
+
+    return start + margin;
+}
+
 export function placeToolbar({
     selection,
     monitor,
@@ -128,20 +136,25 @@ export function placeToolbar({
     const selectedRect = intersectRects(selection, monitorRect) ?? monitorRect;
     const toolbarRect = normalizeRect({x: 0, y: 0, ...toolbar});
 
-    const minimumX = monitorRect.x + margin;
-    const maximumX = Math.max(
-        minimumX,
-        monitorRect.x + monitorRect.width - margin - toolbarRect.width
-    );
-    const x = clamp(
-        selectedRect.x + (selectedRect.width - toolbarRect.width) / 2,
-        minimumX,
-        maximumX
-    );
+    const centeredX = selectedRect.x +
+        (selectedRect.width - toolbarRect.width) / 2;
+    const availableWidth = monitorRect.width - margin * 2;
+    const x = toolbarRect.width > availableWidth
+        ? monitorRect.x + (monitorRect.width - toolbarRect.width) / 2
+        : clamp(
+            centeredX,
+            monitorRect.x + margin,
+            monitorRect.x + monitorRect.width - margin - toolbarRect.width
+        );
 
     const above = selectedRect.y - gap - toolbarRect.height;
     const below = selectedRect.y + selectedRect.height + gap;
-    const minimumY = monitorRect.y + margin;
+    const minimumY = fallbackCoordinate(
+        monitorRect.y,
+        monitorRect.height,
+        toolbarRect.height,
+        margin
+    );
     const maximumY = monitorRect.y + monitorRect.height - margin;
     let y = minimumY;
 

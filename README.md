@@ -19,6 +19,11 @@ previews, undo, redo and clear now work. Conventional `Ctrl+Z`,
 active. Compact Capture does not intercept `Esc`; GNOME retains ownership of
 its screenshot-interface shortcut behaviour.
 
+The compact controls now use equal hit targets, distinct theme-derived states
+and one shared pointer/keyboard-focus hint. Selection-aware placement keeps the
+toolbar outside the captured area when space permits and balances it on narrow
+monitors.
+
 Area and screen annotations are now composited into copied and saved
 screenshots through GNOME's native output path. Captures without annotations,
 window captures and screen recordings continue through GNOME unchanged. The
