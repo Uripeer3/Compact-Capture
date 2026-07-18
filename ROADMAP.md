@@ -144,9 +144,10 @@ Status: in progress.
 
 ## After 0.1
 
-Candidate follow-up work includes text, numbered markers, selecting and moving
-existing annotations, window annotations and optional export integrations.
-These features require separate design review and are not release blockers.
+Version 0.2 will validate lightweight object editing and prepare the annotation
+architecture for a native GNOME Shell patch series. Its independently
+reviewable PR chain and explicit exclusions are recorded in the
+[Version 0.2 roadmap](docs/v2_roadmap.md).
 
 ## Path to GNOME Shell
 
