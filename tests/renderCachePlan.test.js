@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import {CommittedChangeType} from '../src/core/annotationDocument.js';
 import {
+    alignRectToDevicePixels,
     CacheUpdate,
     renderCacheUpdate,
 } from '../src/core/renderCachePlan.js';
@@ -69,4 +70,45 @@ test('does no cache work when committed content is unchanged or empty', () => {
         hasCommitted: false,
         change: null,
     }), CacheUpdate.NONE);
+});
+
+test('expands fractional dirty bounds to cache device pixels', () => {
+    assert.deepEqual(alignRectToDevicePixels({
+        x: 387.5,
+        y: 57.5,
+        width: 25,
+        height: 45,
+    }, 1, {x: 300, y: 40}), {
+        x: 387,
+        y: 57,
+        width: 26,
+        height: 46,
+    });
+
+    assert.deepEqual(alignRectToDevicePixels({
+        x: 387.75,
+        y: 57.75,
+        width: 25,
+        height: 45,
+    }, 2, {x: 300, y: 40}), {
+        x: 387.5,
+        y: 57.5,
+        width: 25.5,
+        height: 45.5,
+    });
+});
+
+test('rejects malformed device-pixel alignment input', () => {
+    assert.throws(() => alignRectToDevicePixels({
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+    }, 0), RangeError);
+    assert.throws(() => alignRectToDevicePixels({
+        x: 0,
+        y: 0,
+        width: -1,
+        height: 10,
+    }, 1), RangeError);
 });

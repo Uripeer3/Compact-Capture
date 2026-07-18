@@ -77,9 +77,10 @@ npm run benchmark
 ```
 
 Once the GNOME adapter lands, building the extension will additionally require
-`gnome-extensions`:
+GJS, GTK 3 and `gnome-extensions`:
 
 ```sh
+npm run test:gjs
 ./build.sh
 gnome-extensions install --force dist/compact-capture@uripeer3.github.io.shell-extension.zip
 ```

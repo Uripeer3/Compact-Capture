@@ -24,6 +24,7 @@ Run:
 npm test
 npm run check
 npm run benchmark
+npm run test:gjs
 ./build.sh
 gnome-extensions install --force \
   dist/compact-capture@uripeer3.github.io.shell-extension.zip
@@ -40,7 +41,7 @@ journalctl --user -b -o cat |
 
 | Check | Expected result | Result / notes |
 | --- | --- | --- |
-| Automated commands | Tests, syntax check, benchmark and build pass |  |
+| Automated commands | Node tests, syntax check, benchmark, real Cairo pixel regression and build pass |  |
 | Extension enable | Compact Capture enables without a compatibility error |  |
 | Baseline journal | No new Compact Capture or JavaScript error |  |
 

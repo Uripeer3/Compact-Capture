@@ -11,7 +11,11 @@ import {
     renderAnnotations,
 } from '../core/annotationRenderer.js';
 import {intersectRects} from '../core/geometry.js';
-import {CacheUpdate, renderCacheUpdate} from '../core/renderCachePlan.js';
+import {
+    alignRectToDevicePixels,
+    CacheUpdate,
+    renderCacheUpdate,
+} from '../core/renderCachePlan.js';
 
 export class AnnotationRenderCache {
     #committedRevision = -1;
@@ -58,7 +62,11 @@ export class AnnotationRenderCache {
         else if (update === CacheUpdate.APPEND)
             this.#drawAppend(view.committedChange.stroke);
         else if (update === CacheUpdate.DIRTY)
-            this.#redrawDirty(view.committed, view.committedChange.bounds);
+            this.#redrawDirty(
+                view.committed,
+                view.committedChange.bounds,
+                scale
+            );
         else if (update === CacheUpdate.CLEAR)
             this.#redrawAll([]);
         else if (update === CacheUpdate.FULL)
@@ -105,13 +113,21 @@ export class AnnotationRenderCache {
         this.#withContext(cr => renderAnnotation(cr, stroke));
     }
 
-    #redrawDirty(strokes, bounds) {
+    #redrawDirty(strokes, bounds, scale) {
         if (!this.#surface)
             return;
 
-        const dirty = intersectRects(bounds, this.#stageRect);
-        if (!dirty)
+        const clippedBounds = intersectRects(bounds, this.#stageRect);
+        if (!clippedBounds)
             return;
+        const dirty = intersectRects(
+            alignRectToDevicePixels(
+                clippedBounds,
+                scale,
+                this.#stageRect
+            ),
+            this.#stageRect
+        );
 
         this.#withContext(cr => {
             cr.rectangle(dirty.x, dirty.y, dirty.width, dirty.height);

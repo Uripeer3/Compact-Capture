@@ -131,6 +131,8 @@ Status: in progress.
   copies with persistent read-only history views.
 - Retain committed Cairo surfaces, append new strokes directly and repaint only
   dirty bounds for undo before pixelate and blur increase rendering cost.
+- Align dirty clips outward to cache device pixels and regression-test
+  translucent undo/redo with real Cairo at 100% and 200% scale.
 - Require real-session output, alpha, cursor-edge and 4K performance results in
   `docs/PR11-TESTING.md`; structural Node tests are not treated as pixel proof.
 

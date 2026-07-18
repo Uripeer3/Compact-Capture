@@ -257,6 +257,10 @@ Committed strokes and points are frozen; only the active draft's private point
 storage changes during pointer motion. Each overlay retains one Cairo image
 surface: commits append one stroke, undo clears and repaints only the removed
 stroke's visual bounds, redo appends, and clear reuses the transparent surface.
+Dirty bounds are expanded outward to device-pixel boundaries relative to the
+cache surface origin before Cairo clips. Translucent overlap is therefore
+pixel-identical after undo/redo rather than recomposited through a fractional
+edge pixel.
 Only first content, resource-scale changes or a missed revision require a full
 surface allocation or redraw. The active draft remains a separate live layer.
 The resource scale is read during the Clutter paint cycle and applied as the
