@@ -7,6 +7,16 @@ import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {shortcutAction} from '../core/keyboardShortcuts.js';
+import {
+    AreaState,
+    CaptureType,
+    createSelectionLifecycle,
+    EmptySelectionEffect,
+    LifecycleEvent,
+    ScreenshotMode,
+    transitionSelectionLifecycle,
+} from '../core/selectionLifecycle.js';
+import {SignalConnectionSet} from '../core/signalConnectionSet.js';
 import {createAnnotationOutput} from './outputRenderer.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
@@ -43,9 +53,7 @@ export class ScreenshotUiAdapter {
     #compatibility = null;
     #connections = [];
     #emptySelection = false;
-    #emptySelectionOnScreenshotReturn = false;
     #injectionManager = null;
-    #lastCaptureType = null;
     #onCaptureChanged;
     #onClosed;
     #onModeChanged;
@@ -55,7 +63,14 @@ export class ScreenshotUiAdapter {
     #onShortcut;
     #screenshotUi;
     #screenshotUiPrototype;
+    #screenSelectorConnections = new SignalConnectionSet({
+        onDisconnectError: error => console.error(
+            'Compact Capture could not disconnect a screen selector',
+            error
+        ),
+    });
     #sessionOpen = false;
+    #selectionLifecycle = createSelectionLifecycle();
     #selectionVisualOpacities = null;
     #captureButtonReactive = null;
     #captureInProgress = null;
@@ -180,19 +195,10 @@ export class ScreenshotUiAdapter {
                 );
             }
 
-            for (const selector of this.#screenshotUi._screenSelectors) {
-                this.#connect(
-                    connections,
-                    selector,
-                    'notify::checked',
-                    () => this.#handleScreenSelectionChanged(selector)
-                );
-            }
-
             this.#injectionManager = injectionManager;
             this.#connections = connections;
             this.#sessionOpen = false;
-            this.#lastCaptureType = null;
+            this.#selectionLifecycle = createSelectionLifecycle();
             this.#captureInProgress = null;
             this.#active = true;
             return true;
@@ -209,13 +215,13 @@ export class ScreenshotUiAdapter {
 
     disable() {
         this.#leaveEmptySelection({resetGeometry: true});
+        this.#screenSelectorConnections.clear();
         this.#disconnectAll(this.#connections);
         this.#connections = [];
         this.#injectionManager?.clear();
         this.#injectionManager = null;
         this.#sessionOpen = false;
-        this.#lastCaptureType = null;
-        this.#emptySelectionOnScreenshotReturn = false;
+        this.#selectionLifecycle = createSelectionLifecycle();
         this.#captureInProgress = null;
         this.#active = false;
     }
@@ -379,12 +385,13 @@ export class ScreenshotUiAdapter {
             return;
 
         this.#sessionOpen = true;
-        if (this.#screenshotUi._shotButton.checked &&
-            this.#captureType() === 'selection') {
-            this.#enterEmptySelection();
-        }
+        this.#rebindScreenSelectors();
+        this.#transitionSelectionLifecycle({
+            type: LifecycleEvent.OPENED,
+            mode: this.#mode(),
+            captureType: this.#captureType(),
+        });
         const session = this.#currentSession();
-        this.#lastCaptureType = session.captureType;
         this.#invokeSafely(this.#onOpened, 'opened', session);
     }
 
@@ -392,10 +399,9 @@ export class ScreenshotUiAdapter {
         if (!this.#active || !this.#sessionOpen)
             return;
 
-        this.#leaveEmptySelection({resetGeometry: false});
+        this.#transitionSelectionLifecycle({type: LifecycleEvent.CLOSED});
+        this.#screenSelectorConnections.clear();
         this.#sessionOpen = false;
-        this.#lastCaptureType = null;
-        this.#emptySelectionOnScreenshotReturn = false;
         this.#invokeSafely(this.#onClosed, 'closed');
     }
 
@@ -403,15 +409,12 @@ export class ScreenshotUiAdapter {
         if (!this.#canDispatch())
             return;
 
-        if (!this.#screenshotUi._shotButton.checked && this.#emptySelection) {
-            this.#leaveEmptySelection({resetGeometry: true});
-            this.#emptySelectionOnScreenshotReturn = true;
-        } else if (this.#screenshotUi._shotButton.checked &&
-            this.#emptySelectionOnScreenshotReturn) {
-            if (this.#captureType() === 'selection')
-                this.#enterEmptySelection();
-            this.#emptySelectionOnScreenshotReturn = false;
-        }
+        const transition = this.#transitionSelectionLifecycle({
+            type: LifecycleEvent.MODE_CHANGED,
+            mode: this.#mode(),
+        });
+        if (!transition.changed)
+            return;
 
         this.#invokeSafely(
             this.#onModeChanged,
@@ -425,19 +428,14 @@ export class ScreenshotUiAdapter {
             return;
 
         const captureType = this.#captureType();
-        if (captureType === this.#lastCaptureType)
+        const transition = this.#transitionSelectionLifecycle({
+            type: LifecycleEvent.CAPTURE_CHANGED,
+            captureType,
+        });
+        if (!transition.changed)
             return;
 
-        if (captureType === 'selection' &&
-            this.#screenshotUi._shotButton.checked) {
-            this.#enterEmptySelection();
-        } else {
-            this.#leaveEmptySelection({resetGeometry: true});
-            this.#emptySelectionOnScreenshotReturn = false;
-        }
-
         const session = this.#currentSession();
-        this.#lastCaptureType = captureType;
         this.#invokeSafely(
             this.#onCaptureChanged,
             'capture type change',
@@ -448,13 +446,18 @@ export class ScreenshotUiAdapter {
     #handleSelectionStarted() {
         if (!this.#canDispatch())
             return;
-        this.#leaveEmptySelection({resetGeometry: false});
+        this.#transitionSelectionLifecycle({
+            type: LifecycleEvent.SELECTION_STARTED,
+        });
         this.#invokeSafely(this.#onSelectionStarted, 'selection drag start');
     }
 
     #handleSelectionChanged() {
         if (!this.#canDispatch())
             return;
+        this.#transitionSelectionLifecycle({
+            type: LifecycleEvent.SELECTION_COMPLETED,
+        });
         this.#invokeSafely(
             this.#onSelectionChanged,
             'selection drag end',
@@ -535,17 +538,23 @@ export class ScreenshotUiAdapter {
 
     #captureType() {
         if (this.#screenshotUi._windowButton.checked)
-            return 'window';
+            return CaptureType.WINDOW;
         if (this.#screenshotUi._screenButton.checked)
-            return 'screen';
-        return 'selection';
+            return CaptureType.SCREEN;
+        return CaptureType.SELECTION;
+    }
+
+    #mode() {
+        return this.#screenshotUi._shotButton.checked
+            ? ScreenshotMode.SCREENSHOT
+            : ScreenshotMode.RECORDING;
     }
 
     async #saveScreenshot(screenshotUi, originalMethod, args) {
         if (screenshotUi !== this.#screenshotUi ||
             !this.#active || !this.#sessionOpen ||
             !this.#screenshotUi._shotButton.checked ||
-            this.#captureType() === 'window') {
+            this.#captureType() === CaptureType.WINDOW) {
             return originalMethod.apply(screenshotUi, args);
         }
 
@@ -711,15 +720,51 @@ export class ScreenshotUiAdapter {
         this.#emptySelection = false;
     }
 
+    #transitionSelectionLifecycle(event) {
+        const transition = transitionSelectionLifecycle(
+            this.#selectionLifecycle,
+            event
+        );
+        this.#selectionLifecycle = transition.state;
+
+        if (transition.effect === EmptySelectionEffect.ENTER) {
+            this.#enterEmptySelection();
+        } else if (
+            transition.effect === EmptySelectionEffect.LEAVE_KEEP_GEOMETRY
+        ) {
+            this.#leaveEmptySelection({resetGeometry: false});
+        } else if (
+            transition.effect === EmptySelectionEffect.LEAVE_RESET_GEOMETRY
+        ) {
+            this.#leaveEmptySelection({resetGeometry: true});
+        }
+
+        return transition;
+    }
+
+    #rebindScreenSelectors() {
+        try {
+            this.#screenSelectorConnections.replace(
+                this.#screenshotUi._screenSelectors,
+                'notify::checked',
+                selector => this.#handleScreenSelectionChanged(selector)
+            );
+        } catch (error) {
+            console.error(
+                'Compact Capture could not bind screen selectors for session',
+                error
+            );
+        }
+    }
+
     #currentSession() {
         const monitors = Main.layoutManager.monitors.map(freezeMonitor);
-        let captureType = 'selection';
+        const captureType = this.#captureType();
         let selection = null;
 
-        captureType = this.#captureType();
-        if (captureType === 'window') {
+        if (captureType === CaptureType.WINDOW) {
             // Window geometry stays owned by GNOME.
-        } else if (captureType === 'screen') {
+        } else if (captureType === CaptureType.SCREEN) {
             const monitorIndex = this.#screenshotUi._screenSelectors.findIndex(
                 selector => selector.checked
             );
@@ -727,7 +772,9 @@ export class ScreenshotUiAdapter {
                 monitors[Main.layoutManager.primaryIndex] ?? monitors[0];
             if (monitor)
                 selection = Object.freeze({...monitor});
-        } else if (!this.#emptySelection) {
+        } else if (
+            this.#selectionLifecycle.areaState === AreaState.SELECTED
+        ) {
             const [x, y, width, height] =
                 this.#screenshotUi._areaSelector.getGeometry();
             if (width > 0 && height > 0)
@@ -735,8 +782,10 @@ export class ScreenshotUiAdapter {
         }
 
         return Object.freeze({
-            isScreenshot: this.#screenshotUi._shotButton.checked,
+            isScreenshot:
+                this.#selectionLifecycle.mode === ScreenshotMode.SCREENSHOT,
             captureType,
+            areaState: this.#selectionLifecycle.areaState,
             selection,
             monitors: Object.freeze(monitors),
             outputScale: Number.isFinite(this.#screenshotUi._scale)

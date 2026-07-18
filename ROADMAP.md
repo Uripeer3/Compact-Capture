@@ -82,7 +82,7 @@ Status: merged.
 
 ### PR 8 — Bounded live rendering
 
-Status: in progress.
+Status: merged.
 
 - Remove deep document snapshots and avoidable point-array allocations from
   the pointer-motion repaint path.
@@ -93,6 +93,8 @@ Status: in progress.
   more expensive tools.
 
 ### PR 9 — Selection lifecycle correctness
+
+Status: in progress.
 
 - Model screenshot mode, capture type and empty-area state as explicit
   lifecycle transitions.
