@@ -125,6 +125,14 @@ Status: in progress.
   scaling while preserving output parity.
 - Extract annotated-output interception and cursor restoration from the main
   adapter behind a narrow, fail-open interface.
+- Make empty-selection actor effects transactional and teardown best-effort so
+  private actor failures cannot strand the lifecycle model or abort cleanup.
+- Let divergent edits reclaim redo capacity and replace full stroke-array
+  copies with persistent read-only history views.
+- Retain committed Cairo surfaces, append new strokes directly and repaint only
+  dirty bounds for undo before pixelate and blur increase rendering cost.
+- Require real-session output, alpha, cursor-edge and 4K performance results in
+  `docs/PR11-TESTING.md`; structural Node tests are not treated as pixel proof.
 
 ### PR 12 — Pixelate and blur
 

@@ -1,75 +1,145 @@
-# PR 11 manual test and performance contract
+# PR 11 manual test checklist
 
-Run the Shell-independent checks first:
+PR 11 is not manually accepted until every required row below is marked Pass
+on a real GNOME 50 session. Record failures with the journal excerpt and the
+exact action that produced them. Node tests validate plans and state changes;
+they do not execute GNOME's Cairo, Cogl or private actor paths.
+
+## Test environment
+
+| Field | Value |
+| --- | --- |
+| Fedora version |  |
+| GNOME Shell / Mutter |  |
+| Session (Wayland/X11) |  |
+| GPU / driver |  |
+| Monitors and scale |  |
+| PR commit |  |
+
+## Build and install
+
+Run:
 
 ```sh
 npm test
 npm run check
 npm run benchmark
 ./build.sh
+gnome-extensions install --force \
+  dist/compact-capture@uripeer3.github.io.shell-extension.zip
 ```
 
-## Output parity
+After replacing extension JavaScript, start a fresh GNOME session before
+testing. Then enable Compact Capture and keep this journal command available:
 
-At 100% and 200% display scale, repeat area and full-screen capture with the
-native pointer switch both off and on.
+```sh
+journalctl --user -b -o cat |
+  grep -E 'Compact Capture|JS ERROR|Gjs-Message' |
+  tail -100
+```
 
-1. Draw a thin freehand line, a rectangle, an arrow and a translucent
-   highlighter stroke near every edge of the output.
-2. Put the pointer entirely inside the selection, partly across each edge and
-   entirely outside it.
-3. Capture once with `Ctrl+C`, once with `Enter` and once with GNOME's capture
-   button. Compare the clipboard image and saved PNG at 100% zoom.
-4. Confirm annotations have identical coordinates and alpha in every output,
-   the pointer appears exactly once when enabled, and edge-overlapping pointers
-   are clipped without wrapping or scaling artifacts.
-5. Repeat with the pointer disabled. The annotation output must remain
-   unchanged and no pointer pixels may appear.
+| Check | Expected result | Result / notes |
+| --- | --- | --- |
+| Automated commands | Tests, syntax check, benchmark and build pass |  |
+| Extension enable | Compact Capture enables without a compatibility error |  |
+| Baseline journal | No new Compact Capture or JavaScript error |  |
 
-## Failure and restoration
+## Native selection lifecycle
 
-1. Temporarily make annotation output preparation throw before delegation.
-   Confirm GNOME performs one unchanged capture and the pointer actor is
-   restored afterward.
-2. Temporarily make the native save reject after the output is installed.
-   Confirm the error is not converted into a second capture and cursor state is
-   restored.
-3. Close ScreenshotUI or disable Compact Capture while a capture is pending.
-   Reopen it and confirm pointer visibility, position and scale remain native.
-4. Check the user journal for `Compact Capture`, `JS ERROR` and `Gjs-Message`
-   entries after each scenario.
+| Check | Expected result | Result / notes |
+| --- | --- | --- |
+| Open area screenshot | Desktop remains shaded; hint is visible; no default selection rectangle or toolbar appears |  |
+| Empty capture gate | `Enter`, `Space` and `Ctrl+C` do not capture before an area exists |  |
+| First drag | Native border and handles appear; hint disappears; toolbar appears outside the selection |  |
+| Recording-first route | Open in recording mode, select Area, then switch to Screenshot; the empty shaded state appears instead of GNOME's default rectangle |  |
+| Mode round trip | Switch Area → Screen → Area and Screenshot → Recording → Screenshot; empty/selected state remains consistent |  |
+| Monitor replacement | Close ScreenshotUI, change the monitor layout, reopen, choose each screen; toolbar and overlay follow the current screen selector |  |
+| Disable while open | Disable the extension; GNOME's selector, handles and capture button return to native behaviour |  |
 
-## 4K/200% performance measurement
+## Drawing, history and incremental cache
 
-Use a 3840 x 2160 output produced from a 1920 x 1080 logical monitor at 200%.
-Use the same annotation document for every run, allow one warm-up capture and
-then record at least ten pointer-off and ten pointer-on captures. Do not mix
-other Shell activity into a run.
+Use freehand, rectangle, arrow and highlighter strokes that overlap each other
+and cross the selected monitor's centre. Include strokes near all four edges.
 
-Record end-to-end time from activation until the screenshot notification and
-GNOME Shell resident memory immediately before and after each capture. Resident
-memory can be sampled with:
+| Check | Expected result | Result / notes |
+| --- | --- | --- |
+| Tool parity | Each preview matches its icon and no committed mark changes after pointer release |  |
+| Highlighter alpha | Overlaps remain translucent and retain the same colour/alpha after undo and redo |  |
+| Rapid commits | Draw at least 50 short shapes quickly; Shell stays responsive and no mark disappears |  |
+| Undo dirty region | Undo 10 times; removed marks vanish completely with no holes or ghosts in overlapping marks |  |
+| Redo append | Redo 5 times; restored marks match their original order and appearance |  |
+| Divergent edit | Undo once, draw a replacement, then try redo; drawing succeeds and redo is unavailable |  |
+| Clear | Clear removes every mark without recreating the toolbar or selection |  |
+| Scale/cache reset | Repeat at 100% and 200%, including a mixed-scale monitor if available; strokes stay sharp and correctly placed |  |
+
+## Saved and copied output matrix
+
+At both 100% and 200%, repeat Area and Screen capture with GNOME's pointer
+switch off and on. For each row, capture once with `Ctrl+C`, once with `Enter`
+and once with GNOME's capture button. Inspect the clipboard image and saved PNG
+at 100% zoom.
+
+| Scale | Capture | Pointer | Expected | Result / notes |
+| ---: | --- | --- | --- | --- |
+| 100% | Area | Off | Preview, clipboard and PNG match |  |
+| 100% | Area | On | Match; pointer appears exactly once |  |
+| 100% | Screen | Off | Preview, clipboard and PNG match |  |
+| 100% | Screen | On | Match; pointer appears exactly once |  |
+| 200% | Area | Off | Match with sharp, correctly scaled marks |  |
+| 200% | Area | On | Match; pointer edge remains antialiased |  |
+| 200% | Screen | Off | Match with sharp, correctly scaled marks |  |
+| 200% | Screen | On | Match; pointer edge remains antialiased |  |
+
+For pointer-on Area captures, also place the pointer fully inside, partially
+across each selection edge, and fully outside. Edge pixels must clip cleanly;
+they must not wrap, duplicate, shift or scale incorrectly. Closely inspect a
+translucent highlighter over a solid annotation. This is the required real-pixel
+check for Cogl blending and premultiplied alpha.
+
+## Failure and teardown
+
+The automated controller and output-bridge tests inject entry, reset, render
+and native-save failures. Manually verify the real actor lifetime:
+
+| Check | Expected result | Result / notes |
+| --- | --- | --- |
+| Close with annotations | Reopening starts a clean document and native empty-area state |  |
+| Disable after selection | No toolbar/overlay remains and GNOME capture still works |  |
+| Capture then close quickly | Reopen successfully; cursor visibility, position and scale remain native |  |
+| Repeated enable/disable | Five cycles produce no stuck shade, hidden handle, inactive capture button or journal error |  |
+
+## 4K/200% performance record
+
+Use a 3840 × 2160 output from a 1920 × 1080 logical monitor at 200%. Draw at
+least 50 mixed annotations, warm up once, then record ten pointer-off and ten
+pointer-on captures for both the parent commit and PR 11. Keep other Shell
+activity out of each run.
+
+Record end-to-end time from capture activation to notification. Sample GNOME
+Shell resident memory immediately before and after each capture:
 
 ```sh
 shell_pid="$(pidof gnome-shell)"
 ps -o rss= -p "$shell_pid"
 ```
 
-Report the median latency and the largest resident-memory increase, together
-with the Fedora, GNOME Shell, Mutter, GPU and driver versions. Compare the
-result with the parent commit using the same session and document.
-
-| Build | Pointer | Median capture time | Max RSS increase |
+| Build | Pointer | Median capture time | Largest RSS increase |
 | --- | --- | ---: | ---: |
-| Parent commit | Off | To measure | To measure |
-| Parent commit | On | To measure | To measure |
-| PR 11 | Off | To measure | To measure |
-| PR 11 | On | To measure | To measure |
+| Parent commit | Off |  |  |
+| Parent commit | On |  |  |
+| PR 11 | Off |  |  |
+| PR 11 | On |  |  |
 
-The source-level resource contract is already executable in unit tests. At 4K
-the annotation pixel buffer is 33,177,600 bytes (31.64 MiB). Pointer-off uses
-the uploaded annotation texture directly. Pointer-on adds one same-sized GPU
-render target, but eliminates the former intermediate texture readback, PNG
-encode, variable-sized memory stream, decoded pixbuf and second pixel upload.
-Both paths therefore have zero intermediate PNG encodes and zero texture
-readbacks before GNOME's one final native encode.
+Acceptance requires no obvious interaction stall during rapid commits and no
+material pointer-on regression versus the parent. The source path contains no
+intermediate cursor PNG encode or texture readback before GNOME's one final
+native encode, but only this real-session measurement validates the practical
+cost.
+
+## Final acceptance
+
+| Check | Expected result | Result / notes |
+| --- | --- | --- |
+| Full journal review | No unexplained Compact Capture or JavaScript error |  |
+| Required rows | Every required row above is Pass |  |
+| Reviewer | Name/date recorded before merge |  |

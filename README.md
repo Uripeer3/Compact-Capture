@@ -48,6 +48,12 @@ pixel upload before handing annotated output back to GNOME. That temporary
 handoff and native cursor restoration live in a small fail-open bridge instead
 of the main ScreenshotUI adapter.
 
+Committed annotations now use persistent read-only history views and a retained
+Cairo cache. New strokes append directly; undo clears and repaints only the
+affected bounds; redo and clear reuse the existing monitor surface. Undo also
+frees its redo budget as soon as a divergent drawing begins, so the safety
+limit cannot leave the editor stuck.
+
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.
 
@@ -84,8 +90,9 @@ loaded modules; after replacing extension files, a fresh login is the reliable
 way to test new JavaScript. Installing a normal extension through GNOME's
 extension service hides most of this discovery and update lifecycle.
 
-See the per-PR testing documents in `docs/` for the manual checks expected in a
-real GNOME session.
+See [docs/PR11-TESTING.md](docs/PR11-TESTING.md) for the current real-session
+acceptance checklist and the other per-PR testing documents in `docs/` for
+historical checks.
 
 ## Licence and provenance
 

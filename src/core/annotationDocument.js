@@ -1,9 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+import {annotationBounds} from './annotationBounds.js';
 import {isSupportedTool} from './toolDefinitions.js';
 
 export const MAX_DOCUMENT_POINTS = 65_536;
 export const MAX_DOCUMENT_STROKES = 1_024;
+
+export const CommittedChangeType = Object.freeze({
+    APPEND: 'append',
+    REMOVE: 'remove',
+    CLEAR: 'clear',
+});
+
+const STROKE_CHUNK_SIZE = 32;
 
 function validateLimit(value, name, minimum) {
     if (!Number.isInteger(value) || value < minimum)
@@ -66,18 +75,82 @@ function freezeStroke(stroke) {
     return Object.freeze(stroke);
 }
 
+// A persistent sequence keeps old render views immutable while limiting a
+// history transition to one short chunk copy instead of copying every stroke.
+class StrokeSequence {
+    #chunks;
+
+    constructor(chunks = [], length = 0) {
+        this.#chunks = Object.freeze(chunks);
+        this.length = length;
+        Object.freeze(this);
+    }
+
+    append(stroke) {
+        const lastChunk = this.#chunks.at(-1);
+        if (!lastChunk || lastChunk.length === STROKE_CHUNK_SIZE) {
+            return new StrokeSequence([
+                ...this.#chunks,
+                Object.freeze([stroke]),
+            ], this.length + 1);
+        }
+
+        return new StrokeSequence([
+            ...this.#chunks.slice(0, -1),
+            Object.freeze([...lastChunk, stroke]),
+        ], this.length + 1);
+    }
+
+    at(index) {
+        let offset = index < 0 ? this.length + index : index;
+        if (offset < 0 || offset >= this.length)
+            return undefined;
+
+        for (const chunk of this.#chunks) {
+            if (offset < chunk.length)
+                return chunk[offset];
+            offset -= chunk.length;
+        }
+        return undefined;
+    }
+
+    pop() {
+        const lastChunk = this.#chunks.at(-1);
+        if (!lastChunk)
+            return null;
+
+        const stroke = lastChunk.at(-1);
+        const chunks = lastChunk.length === 1
+            ? this.#chunks.slice(0, -1)
+            : [
+                ...this.#chunks.slice(0, -1),
+                Object.freeze(lastChunk.slice(0, -1)),
+            ];
+        return Object.freeze({
+            sequence: new StrokeSequence(chunks, this.length - 1),
+            stroke,
+        });
+    }
+
+    *[Symbol.iterator]() {
+        for (const chunk of this.#chunks)
+            yield* chunk;
+    }
+}
+
 export class AnnotationDocument {
     #cachedRenderView = null;
+    #committedChange = null;
     #committedRevision = 0;
-    #committedView = Object.freeze([]);
+    #committedView = new StrokeSequence();
     #draft = null;
-    #draftRevision = 0;
     #draftView = null;
     #maxPoints;
     #maxStrokes;
     #redoStrokes = [];
+    #redoPointCount = 0;
     #storedPointCount = 0;
-    #strokes = [];
+    #strokes = new StrokeSequence();
 
     constructor({
         maxPoints = MAX_DOCUMENT_POINTS,
@@ -127,12 +200,18 @@ export class AnnotationDocument {
             throw new TypeError('Stroke width must be positive');
 
         const firstPoint = createPoint(point);
-        const storedStrokeCount =
-            this.#strokes.length + this.#redoStrokes.length;
-        if (storedStrokeCount >= this.#maxStrokes ||
-            this.#storedPointCount > this.#maxPoints - 2) {
+        const committedPointCount =
+            this.#storedPointCount - this.#redoPointCount;
+        if (this.#strokes.length >= this.#maxStrokes ||
+            committedPointCount > this.#maxPoints - 2) {
             return false;
         }
+
+        // Starting a divergent edit invalidates redo before reserving its
+        // first point, so undo always frees capacity for replacement work.
+        this.#storedPointCount -= this.#redoPointCount;
+        this.#redoPointCount = 0;
+        this.#redoStrokes = [];
 
         this.#draft = {
             tool,
@@ -194,11 +273,13 @@ export class AnnotationDocument {
             return false;
         }
 
-        for (const redoStroke of this.#redoStrokes)
-            this.#storedPointCount -= redoStroke.points.length;
-        this.#redoStrokes = [];
-        this.#strokes.push(freezeStroke(stroke));
-        this.#touchCommitted();
+        const committedStroke = freezeStroke(stroke);
+        this.#strokes = this.#strokes.append(committedStroke);
+        this.#touchCommitted({
+            type: CommittedChangeType.APPEND,
+            stroke: committedStroke,
+            bounds: annotationBounds(committedStroke),
+        });
         return true;
     }
 
@@ -217,12 +298,18 @@ export class AnnotationDocument {
         if (this.#draft)
             return this.cancelStroke();
 
-        const stroke = this.#strokes.pop();
-        if (!stroke)
+        const result = this.#strokes.pop();
+        if (!result)
             return false;
 
-        this.#redoStrokes.push(stroke);
-        this.#touchCommitted();
+        this.#strokes = result.sequence;
+        this.#redoStrokes.push(result.stroke);
+        this.#redoPointCount += result.stroke.points.length;
+        this.#touchCommitted({
+            type: CommittedChangeType.REMOVE,
+            stroke: result.stroke,
+            bounds: annotationBounds(result.stroke),
+        });
         return true;
     }
 
@@ -234,8 +321,13 @@ export class AnnotationDocument {
         if (!stroke)
             return false;
 
-        this.#strokes.push(stroke);
-        this.#touchCommitted();
+        this.#redoPointCount -= stroke.points.length;
+        this.#strokes = this.#strokes.append(stroke);
+        this.#touchCommitted({
+            type: CommittedChangeType.APPEND,
+            stroke,
+            bounds: annotationBounds(stroke),
+        });
         return true;
     }
 
@@ -245,12 +337,13 @@ export class AnnotationDocument {
 
         this.#draft = null;
         this.#draftView = null;
-        this.#strokes = [];
+        this.#strokes = new StrokeSequence();
         this.#redoStrokes = [];
+        this.#redoPointCount = 0;
         this.#storedPointCount = 0;
 
         if (hadCommitted)
-            this.#touchCommitted();
+            this.#touchCommitted({type: CommittedChangeType.CLEAR});
         if (hadDraft)
             this.#touchDraft();
     }
@@ -259,7 +352,7 @@ export class AnnotationDocument {
         if (!this.#cachedRenderView) {
             this.#cachedRenderView = Object.freeze({
                 committedRevision: this.#committedRevision,
-                draftRevision: this.#draftRevision,
+                committedChange: this.#committedChange,
                 committed: this.#committedView,
                 draft: this.#draftView,
             });
@@ -268,20 +361,22 @@ export class AnnotationDocument {
     }
 
     snapshot({includeDraft = false} = {}) {
-        const strokes = this.#strokes.map(cloneStroke);
+        const strokes = [];
+        for (const stroke of this.#strokes)
+            strokes.push(cloneStroke(stroke));
         if (includeDraft && this.#draft)
             strokes.push(cloneStroke(this.#draft));
         return strokes;
     }
 
-    #touchCommitted() {
+    #touchCommitted(change) {
         this.#committedRevision++;
-        this.#committedView = Object.freeze([...this.#strokes]);
+        this.#committedView = this.#strokes;
+        this.#committedChange = Object.freeze({...change});
         this.#cachedRenderView = null;
     }
 
     #touchDraft() {
-        this.#draftRevision++;
         this.#cachedRenderView = null;
     }
 }

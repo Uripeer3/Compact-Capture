@@ -16,13 +16,15 @@ viewer, export system or storage workflow.
 - Keep immutable render views and the existing document-wide resource limits.
 - Add migration and output-parity tests for every v0.1 tool.
 
-## PR 16 — Incremental dirty-region rendering
+## PR 16 — ID-indexed editing damage
 
-- Track the previous and current render bounds of every changed annotation.
-- Clear and repaint only affected cache regions instead of rebuilding the
-  complete committed surface after every document transition.
-- Skip committed annotations whose bounds do not intersect the dirty region.
-- Preserve separate committed and active-draft rendering.
+- Extend the v0.1 append/undo/redo dirty-region cache to object edits by
+  tracking both the previous and current bounds of each stable annotation ID.
+- Union old and new bounds for move, resize and style changes, then repaint only
+  annotations intersecting that damage.
+- Add an ID-indexed spatial lookup only if measurements show the bounded linear
+  intersection pass is insufficient.
+- Preserve the existing separate committed and active-draft rendering paths.
 - Measure CPU time and cache memory at 100%, 200% and mixed monitor scales.
 
 ## PR 17 — Selection, hit testing and deletion

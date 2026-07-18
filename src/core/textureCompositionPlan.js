@@ -30,7 +30,5 @@ export function createTextureCompositionPlan(outputPlan, baseTexture) {
         cursor,
         layers: Object.freeze(cursor ? [base, cursor] : [base]),
         pixelBytes: outputPlan.pixelWidth * outputPlan.pixelHeight * 4,
-        intermediatePngEncodes: 0,
-        textureReadbacks: 0,
     });
 }

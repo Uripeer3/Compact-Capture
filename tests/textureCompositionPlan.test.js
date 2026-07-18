@@ -25,8 +25,6 @@ test('uses the uploaded annotation texture directly without a pointer', () => {
     assert.equal(plan.cursor, null);
     assert.deepEqual(plan.layers, [plan.base]);
     assert.equal(plan.pixelBytes, 33_177_600);
-    assert.equal(plan.intermediatePngEncodes, 0);
-    assert.equal(plan.textureReadbacks, 0);
 });
 
 test('places and clips the pointer in framebuffer clip space', () => {
@@ -46,6 +44,4 @@ test('places and clips the pointer in framebuffer clip space', () => {
         x2: -0.7,
         y2: 0.09999999999999998,
     });
-    assert.equal(plan.intermediatePngEncodes, 0);
-    assert.equal(plan.textureReadbacks, 0);
 });

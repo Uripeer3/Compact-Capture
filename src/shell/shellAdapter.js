@@ -19,6 +19,7 @@ import {
 } from '../core/selectionLifecycle.js';
 import {SignalConnectionSet} from '../core/signalConnectionSet.js';
 import {AnnotatedOutputBridge} from './annotatedOutputBridge.js';
+import {EmptySelectionController} from './emptySelectionController.js';
 import {createAnnotationOutput} from './outputRenderer.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
@@ -44,9 +45,6 @@ function freezeMonitor(monitor, index) {
         y: monitor.y,
         width: monitor.width,
         height: monitor.height,
-        displayScale: Number.isFinite(monitor.geometry_scale)
-            ? monitor.geometry_scale
-            : 1,
     });
 }
 
@@ -54,7 +52,12 @@ export class ScreenshotUiAdapter {
     #active = false;
     #compatibility = null;
     #connections = [];
-    #emptySelection = false;
+    #emptySelectionController = new EmptySelectionController({
+        onError: (message, error) => console.error(
+            `Compact Capture ${message}`,
+            error
+        ),
+    });
     #injectionManager = null;
     #onCaptureChanged;
     #onClosed;
@@ -74,8 +77,6 @@ export class ScreenshotUiAdapter {
     });
     #sessionOpen = false;
     #selectionLifecycle = createSelectionLifecycle();
-    #selectionVisualOpacities = null;
-    #captureButtonReactive = null;
     #captureGate = new AsyncTaskGate();
     #prepareCapture;
 
@@ -220,15 +221,25 @@ export class ScreenshotUiAdapter {
     }
 
     disable() {
-        this.#leaveEmptySelection({resetGeometry: true});
-        this.#screenSelectorConnections.clear();
-        this.#disconnectAll(this.#connections);
-        this.#connections = [];
-        this.#injectionManager?.clear();
-        this.#injectionManager = null;
-        this.#sessionOpen = false;
-        this.#selectionLifecycle = createSelectionLifecycle();
-        this.#active = false;
+        try {
+            this.#leaveEmptySelection({resetGeometry: true});
+        } finally {
+            this.#screenSelectorConnections.clear();
+            this.#disconnectAll(this.#connections);
+            this.#connections = [];
+            try {
+                this.#injectionManager?.clear();
+            } catch (error) {
+                console.error(
+                    'Compact Capture could not clear its method injections',
+                    error
+                );
+            }
+            this.#injectionManager = null;
+            this.#sessionOpen = false;
+            this.#selectionLifecycle = createSelectionLifecycle();
+            this.#active = false;
+        }
     }
 
     mountSelectionHint(hint) {
@@ -396,6 +407,8 @@ export class ScreenshotUiAdapter {
             mode: this.#mode(),
             captureType: this.#captureType(),
         });
+        if (!this.#active)
+            return;
         const session = this.#currentSession();
         this.#invokeSafely(this.#onOpened, 'opened', session);
     }
@@ -488,8 +501,10 @@ export class ScreenshotUiAdapter {
     }
 
     #handleKeyPress(event) {
-        if (this.#emptySelection && this.#isCaptureShortcut(event))
+        if (this.#emptySelectionController.active &&
+            this.#isCaptureShortcut(event)) {
             return Clutter.EVENT_STOP;
+        }
         if (!this.#canDispatch())
             return Clutter.EVENT_PROPAGATE;
 
@@ -634,56 +649,18 @@ export class ScreenshotUiAdapter {
     }
 
     #enterEmptySelection() {
-        if (this.#emptySelection)
-            return;
-
         const selector = this.#screenshotUi._areaSelector;
-        this.#selectionVisualOpacities = new Map(
-            selectionVisualActors(selector).map(actor => [
-                actor,
-                actor.opacity,
-            ])
-        );
-        this.#captureButtonReactive =
-            this.#screenshotUi._captureButton.reactive;
-
-        for (const actor of this.#selectionVisualOpacities.keys())
-            actor.opacity = 0;
-
-        // Keep GNOME's selector intact, but move its current rectangle far
-        // outside the stage. Its native press handler will consequently start
-        // the next gesture as a fresh crosshair selection.
-        selector._startX = EMPTY_SELECTION_COORDINATE;
-        selector._startY = EMPTY_SELECTION_COORDINATE;
-        selector._lastX = EMPTY_SELECTION_COORDINATE;
-        selector._lastY = EMPTY_SELECTION_COORDINATE;
-        selector._updateSelectionRect();
-        // Preserve GNOME's native shade while collapsing only its transparent
-        // selection cutout to an effectively invisible corner pixel.
-        selector._areaIndicator.setSelectionRect(0, 0, 1, 1);
-        selector.set_cursor_type(Clutter.CursorType.CROSSHAIR);
-        this.#screenshotUi._captureButton.reactive = false;
-        this.#emptySelection = true;
+        return this.#emptySelectionController.enter({
+            selector,
+            visualActors: selectionVisualActors(selector),
+            captureButton: this.#screenshotUi._captureButton,
+            cursorType: Clutter.CursorType.CROSSHAIR,
+            emptyCoordinate: EMPTY_SELECTION_COORDINATE,
+        });
     }
 
     #leaveEmptySelection({resetGeometry}) {
-        if (!this.#emptySelection)
-            return;
-
-        const selector = this.#screenshotUi._areaSelector;
-        // A native drag has already supplied valid geometry. Other exits need
-        // GNOME to rebuild its normal default before we return ownership.
-        if (resetGeometry)
-            selector.reset();
-
-        for (const [actor, opacity] of this.#selectionVisualOpacities)
-            actor.opacity = opacity;
-        this.#screenshotUi._captureButton.reactive =
-            this.#captureButtonReactive;
-
-        this.#selectionVisualOpacities = null;
-        this.#captureButtonReactive = null;
-        this.#emptySelection = false;
+        return this.#emptySelectionController.leave({resetGeometry});
     }
 
     #transitionSelectionLifecycle(event) {
@@ -691,10 +668,18 @@ export class ScreenshotUiAdapter {
             this.#selectionLifecycle,
             event
         );
-        this.#selectionLifecycle = transition.state;
-
         if (transition.effect === EmptySelectionEffect.ENTER) {
-            this.#enterEmptySelection();
+            if (!this.#enterEmptySelection()) {
+                const failedTransition = Object.freeze({
+                    ...transition,
+                    state: this.#selectionLifecycle,
+                    changed: false,
+                    effect: EmptySelectionEffect.NONE,
+                    failed: true,
+                });
+                this.disable();
+                return failedTransition;
+            }
         } else if (
             transition.effect === EmptySelectionEffect.LEAVE_KEEP_GEOMETRY
         ) {
@@ -705,6 +690,7 @@ export class ScreenshotUiAdapter {
             this.#leaveEmptySelection({resetGeometry: true});
         }
 
+        this.#selectionLifecycle = transition.state;
         return transition;
     }
 

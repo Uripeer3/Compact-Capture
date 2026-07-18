@@ -86,33 +86,6 @@ export function drawingRects(selection, monitors, gutter = 8) {
     });
 }
 
-export function stagePointToMonitor(point, monitor) {
-    const rect = normalizeRect(monitor);
-    return Object.freeze({
-        x: finiteNumber(point?.x, 'Point x') - rect.x,
-        y: finiteNumber(point?.y, 'Point y') - rect.y,
-    });
-}
-
-export function monitorPointToStage(point, monitor) {
-    const rect = normalizeRect(monitor);
-    return Object.freeze({
-        x: finiteNumber(point?.x, 'Point x') + rect.x,
-        y: finiteNumber(point?.y, 'Point y') + rect.y,
-    });
-}
-
-export function stagePointToOutput(point, monitor, outputScale) {
-    if (!Number.isFinite(outputScale) || outputScale <= 0)
-        throw new RangeError('Output scale must be positive');
-
-    const local = stagePointToMonitor(point, monitor);
-    return Object.freeze({
-        x: local.x * outputScale,
-        y: local.y * outputScale,
-    });
-}
-
 function clamp(value, minimum, maximum) {
     return Math.min(Math.max(value, minimum), maximum);
 }

@@ -3,6 +3,7 @@
 
 import Cairo from 'gi://cairo';
 
+import {arrowHeadPoints} from './annotationBounds.js';
 import {Tool} from './toolDefinitions.js';
 
 function setColor(cr, color, alpha = 1) {
@@ -47,9 +48,7 @@ function drawRectangle(cr, stroke) {
 function drawArrow(cr, stroke) {
     const start = stroke.points.at(0);
     const end = stroke.points.at(-1);
-    const angle = Math.atan2(end.y - start.y, end.x - start.x);
-    const spread = Math.PI / 7;
-    const headLength = stroke.width * 5;
+    const [firstHead, secondHead] = arrowHeadPoints(stroke);
 
     setColor(cr, stroke.color);
     cr.setLineWidth(stroke.width);
@@ -58,15 +57,9 @@ function drawArrow(cr, stroke) {
     cr.moveTo(start.x, start.y);
     cr.lineTo(end.x, end.y);
     cr.moveTo(end.x, end.y);
-    cr.lineTo(
-        end.x - headLength * Math.cos(angle - spread),
-        end.y - headLength * Math.sin(angle - spread)
-    );
+    cr.lineTo(firstHead.x, firstHead.y);
     cr.moveTo(end.x, end.y);
-    cr.lineTo(
-        end.x - headLength * Math.cos(angle + spread),
-        end.y - headLength * Math.sin(angle + spread)
-    );
+    cr.lineTo(secondHead.x, secondHead.y);
     cr.stroke();
 }
 
