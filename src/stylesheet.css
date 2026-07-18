@@ -23,17 +23,28 @@
 }
 
 .compact-capture-icon-button:hover,
-.compact-capture-icon-button:focus {
+.compact-capture-color-button:hover {
     background-color: st-transparentize(-st-accent-fg-color, 0.82);
 }
 
-.compact-capture-icon-button:active {
+.compact-capture-icon-button:focus,
+.compact-capture-color-button:focus {
+    background-color: st-transparentize(-st-accent-fg-color, 0.82);
+    box-shadow: inset 0 0 0 2px -st-accent-color;
+}
+
+.compact-capture-icon-button:active,
+.compact-capture-color-button:active {
     background-color: st-transparentize(-st-accent-fg-color, 0.65);
 }
 
 .compact-capture-icon-button:checked {
     color: -st-accent-fg-color;
     background-color: -st-accent-color;
+}
+
+.compact-capture-icon-button:checked:focus {
+    box-shadow: inset 0 0 0 2px -st-accent-fg-color;
 }
 
 .compact-capture-icon-button:insensitive {
@@ -43,32 +54,38 @@
 }
 
 .compact-capture-color-button {
-    width: 24px;
-    height: 24px;
-    padding: 2px;
-    border: 2px solid transparent;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
     border-radius: 999px;
     background-color: transparent;
 }
 
-.compact-capture-color-button:hover,
-.compact-capture-color-button:focus {
-    background-color: st-transparentize(-st-accent-fg-color, 0.82);
+.compact-capture-color-button:checked:focus {
+    box-shadow: inset 0 0 0 2px -st-accent-fg-color;
 }
 
-.compact-capture-color-button:checked {
-    border-color: -st-accent-color;
+.compact-capture-color-button:insensitive {
+    background-color: transparent;
+    box-shadow: none;
+    opacity: 0.45;
 }
 
 .compact-capture-color-swatch {
     width: 16px;
     height: 16px;
+    border: 1px solid st-transparentize(-st-accent-fg-color, 0.55);
     border-radius: 999px;
-    box-shadow: 0 0 0 1px st-transparentize(-st-accent-fg-color, 0.55);
+    box-shadow: none;
+}
+
+.compact-capture-color-button:checked .compact-capture-color-swatch {
+    border: 2px solid -st-accent-color;
 }
 
 .compact-capture-line-width {
     width: 72px;
+    min-height: 34px;
 }
 
 .compact-capture-separator {

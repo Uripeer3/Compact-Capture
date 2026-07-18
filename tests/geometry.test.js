@@ -80,3 +80,25 @@ test('places the toolbar above, below, then at the monitor top', () => {
         12
     );
 });
+
+test('balances an oversized toolbar across a narrow monitor', () => {
+    assert.deepEqual(
+        placeToolbar({
+            selection: {x: 100, y: 100, width: 200, height: 200},
+            monitor: {index: 2, x: 0, y: 0, width: 480, height: 800},
+            toolbar: {width: 560, height: 48},
+        }),
+        {monitorIndex: 2, x: -40, y: 44}
+    );
+});
+
+test('keeps a tall toolbar balanced inside a short monitor', () => {
+    assert.equal(
+        placeToolbar({
+            selection: {x: 0, y: 0, width: 320, height: 180},
+            monitor: {index: 3, x: 0, y: 0, width: 320, height: 180},
+            toolbar: {width: 280, height: 200},
+        }).y,
+        -10
+    );
+});

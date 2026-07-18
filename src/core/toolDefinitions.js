@@ -47,9 +47,18 @@ export const LINE_WIDTH_MIN = 1;
 export const LINE_WIDTH_MAX = 16;
 
 const TOOL_IDS = new Set(TOOL_DEFINITIONS.map(tool => tool.id));
+const TOOL_DEFAULT_WIDTHS = new Map(
+    TOOL_DEFINITIONS.map(tool => [tool.id, tool.defaultWidth])
+);
 
 export function isSupportedTool(tool) {
     return TOOL_IDS.has(tool);
+}
+
+export function defaultWidthForTool(tool) {
+    if (!isSupportedTool(tool))
+        throw new TypeError(`Unsupported annotation tool: ${tool}`);
+    return TOOL_DEFAULT_WIDTHS.get(tool);
 }
 
 export function isSupportedColor(color) {

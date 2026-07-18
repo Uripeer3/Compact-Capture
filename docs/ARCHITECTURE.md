@@ -108,9 +108,10 @@ native save starts retain GNOME's existing propagation behaviour.
 `ui/compactToolbar.js` ports Gradia Capture's toolbar interaction pattern
 without its settings, drawing-canvas or controller dependencies. It owns only
 Shell widgets and emits semantic tool/style/action signals.
-`core/toolbarState.js` stores the selected tool, palette colour and line width
-independently of Shell so the state is unit-testable and survives switching
-temporarily into recording mode.
+`core/toolbarState.js` stores the selected tool, palette colour and a remembered
+line width for each tool independently of Shell. Highlighter therefore retains
+its wider default without changing the width of the regular drawing tools. The
+state is unit-testable and survives switching temporarily into recording mode.
 
 Undo and redo move complete strokes between session-local stacks. A
 new committed stroke invalidates redo history, clear resets both stacks and an
@@ -146,10 +147,19 @@ While area mode is empty, a non-reactive hint on the primary monitor explains
 the native keyboard route: drag an area, or press `C` and then `Enter` for a
 screen capture. The hint disappears synchronously when selection starts.
 
-Every compact control retains an accessible name and has a delayed hover hint.
-Tooltip actors are mounted beside the toolbar so they can use monitor-local
-coordinates without taking ownership of ScreenshotUI. They are cancelled and
-destroyed with the toolbar, including when a hint is still waiting to open.
+Every compact control retains an accessible name and has a delayed pointer or
+keyboard-focus hint. One toolbar-owned tooltip actor is mounted beside the
+toolbar so it can use stage coordinates without taking ownership of
+ScreenshotUI. Switching controls cancels the pending hint before reusing that
+actor, and destroying the toolbar disconnects all target signals and timeouts.
+
+Tool, colour and action buttons use one 34-logical-pixel hit target. Symbolic
+artwork and colour swatches remain 16 logical pixels, leaving the surrounding
+space available to pointer and touch input. Hover, active, checked, keyboard
+focus and insensitive styling use Shell theme colours and remain independently
+visible. Placement prefers space outside the selected output and balances an
+oversized toolbar across a narrow monitor rather than overflowing only one
+edge.
 
 ## Overlay boundary
 

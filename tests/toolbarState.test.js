@@ -29,6 +29,42 @@ test('keeps valid tool style changes together', () => {
     });
 });
 
+test('uses and restores each tool default width', () => {
+    const state = new ToolbarState();
+
+    state.selectTool(Tool.HIGHLIGHTER);
+    assert.equal(state.lineWidth, 12);
+
+    state.selectTool(Tool.RECTANGLE);
+    assert.equal(state.lineWidth, 3);
+
+    state.selectTool(Tool.HIGHLIGHTER);
+    assert.equal(state.lineWidth, 12);
+});
+
+test('remembers customized widths independently for each tool', () => {
+    const state = new ToolbarState();
+    state.setLineWidth(5);
+
+    state.selectTool(Tool.HIGHLIGHTER);
+    state.setLineWidth(14);
+
+    state.selectTool(Tool.FREEHAND);
+    assert.equal(state.lineWidth, 5);
+
+    state.selectTool(Tool.HIGHLIGHTER);
+    assert.equal(state.lineWidth, 14);
+});
+
+test('allows an explicit initial width to override the tool default', () => {
+    const state = new ToolbarState({
+        tool: Tool.HIGHLIGHTER,
+        lineWidth: 10,
+    });
+
+    assert.equal(state.lineWidth, 10);
+});
+
 test('rejects unsupported toolbar values', () => {
     const state = new ToolbarState();
 
