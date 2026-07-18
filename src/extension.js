@@ -226,12 +226,6 @@ export default class CompactCaptureExtension extends Extension {
             handled = this._undo();
         else if (action === ShortcutAction.REDO)
             handled = this._redo();
-        else if (action === ShortcutAction.CANCEL_GESTURE &&
-            this._document.isDrawing) {
-            this._cancelActiveGestures();
-            this._repaintOverlays();
-            handled = true;
-        }
         return handled;
     }
 

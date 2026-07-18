@@ -511,8 +511,6 @@ export class ScreenshotUiAdapter {
     }
 
     #shortcutKey(symbol) {
-        if (symbol === Clutter.KEY_Escape)
-            return 'escape';
         if (symbol === Clutter.KEY_z || symbol === Clutter.KEY_Z)
             return 'z';
         if (symbol === Clutter.KEY_y || symbol === Clutter.KEY_Y)

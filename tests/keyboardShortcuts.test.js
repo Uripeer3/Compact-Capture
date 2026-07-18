@@ -15,12 +15,10 @@ test('maps conventional editing shortcuts', () => {
         ShortcutAction.REDO);
     assert.equal(shortcutAction({key: 'y', control: true}),
         ShortcutAction.REDO);
-    assert.equal(shortcutAction({key: 'escape'}),
-        ShortcutAction.CANCEL_GESTURE);
 });
 
 test('ignores shortcuts owned by GNOME or focused controls', () => {
     assert.equal(shortcutAction({key: 'z'}), null);
     assert.equal(shortcutAction({key: 'c', control: true}), null);
-    assert.equal(shortcutAction({key: 'escape', shift: true}), null);
+    assert.equal(shortcutAction({key: 'escape'}), null);
 });

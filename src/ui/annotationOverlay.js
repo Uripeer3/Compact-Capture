@@ -48,6 +48,7 @@ class AnnotationOverlay extends St.DrawingArea {
         this._drawing = false;
         this._dragButton = 0;
         this._dragGrab = null;
+        this._capturedEventId = 0;
         this._lastPoint = null;
         this._pointCount = 0;
         this._activeTool = null;
@@ -66,6 +67,7 @@ class AnnotationOverlay extends St.DrawingArea {
         this._lastPoint = null;
         this._pointCount = 0;
         this._activeTool = null;
+        this._disconnectCapturedEvent();
         this._releaseGrab();
     }
 
@@ -149,6 +151,10 @@ class AnnotationOverlay extends St.DrawingArea {
         this._lastPoint = point;
         this._pointCount = 1;
         this._dragGrab = global.stage.grab(this);
+        this._capturedEventId = global.stage.connect(
+            'captured-event',
+            (_actor, event) => this._onCapturedEvent(event)
+        );
         this._notifyDocumentChanged();
     }
 
@@ -192,8 +198,28 @@ class AnnotationOverlay extends St.DrawingArea {
         this._lastPoint = null;
         this._pointCount = 0;
         this._activeTool = null;
+        this._disconnectCapturedEvent();
         this._releaseGrab();
         this._notifyDocumentChanged();
+    }
+
+    _onCapturedEvent(event) {
+        if (event.type() !== Clutter.EventType.KEY_PRESS ||
+            event.get_key_symbol() !== Clutter.KEY_Escape) {
+            return Clutter.EVENT_PROPAGATE;
+        }
+
+        this.cancelGesture();
+        this._notifyDocumentChanged();
+        return Clutter.EVENT_STOP;
+    }
+
+    _disconnectCapturedEvent() {
+        if (!this._capturedEventId)
+            return;
+
+        global.stage.disconnect(this._capturedEventId);
+        this._capturedEventId = 0;
     }
 
     _releaseGrab() {
