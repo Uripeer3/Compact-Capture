@@ -21,6 +21,18 @@ Run these checks in a real GNOME 50 Wayland session after `npm test`,
    interface normally.
 5. Confirm GNOME's area, screen, window, capture and copy shortcuts still work.
 
+## Hover hints
+
+1. Hover a drawing tool until its hint appears, then leave it; confirm the hint
+   disappears immediately.
+2. Hover Undo with one annotation remaining, click it and keep the pointer in
+   place; confirm the hint disappears when Undo becomes insensitive.
+3. Repeat with Clear and confirm no hint remains after the document is empty.
+4. Move rapidly across several controls and confirm at most one hint is visible
+   after the pointer stops.
+5. Close ScreenshotUI while a hint is visible and while a hint is still waiting
+   to open; confirm neither hint survives and no journal error is produced.
+
 ## Lifecycle and output
 
 1. Close and reopen ScreenshotUI; confirm history starts empty.

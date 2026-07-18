@@ -71,6 +71,8 @@ Status: in progress.
   specification.
 - Verify symbolic icons, hover hints, keyboard focus, contrast and touch target
   behaviour without enlarging the toolbar unnecessarily.
+- Replace the per-control tooltip actors with one toolbar-owned tooltip
+  controller, including keyboard-focus hints and rapid-transition tests.
 - Keep the toolbar outside the selected output whenever monitor space permits.
 
 ### PR 8 — Pixelate and blur

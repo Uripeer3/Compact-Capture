@@ -26,6 +26,20 @@ class CompactTooltip extends St.Label {
             else
                 this.close();
         });
+        this._reactiveSignalId = widget.connect(
+            'notify::reactive',
+            () => {
+                if (!widget.reactive)
+                    this.close();
+            }
+        );
+        this._mappedSignalId = widget.connect(
+            'notify::mapped',
+            () => {
+                if (!widget.mapped)
+                    this.close();
+            }
+        );
         this._widgetDestroySignalId = widget.connect(
             'destroy',
             () => this.destroy()
@@ -53,21 +67,16 @@ class CompactTooltip extends St.Label {
 
     close() {
         this._cancelTimeout();
-        if (!this.visible)
-            return;
-
         this.remove_all_transitions();
-        this.ease({
-            opacity: 0,
-            duration: 100,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this.hide(),
-        });
+        this.opacity = 0;
+        this.hide();
     }
 
     _showBelowOrAbove() {
-        if (!this._widget.mapped || !this.get_parent())
+        if (!this._widget?.hover || !this._widget.reactive ||
+            !this._widget.mapped || !this.get_parent()) {
             return;
+        }
 
         this.opacity = 0;
         this.show();
@@ -119,6 +128,10 @@ class CompactTooltip extends St.Label {
         try {
             if (this._hoverSignalId)
                 this._widget.disconnect(this._hoverSignalId);
+            if (this._reactiveSignalId)
+                this._widget.disconnect(this._reactiveSignalId);
+            if (this._mappedSignalId)
+                this._widget.disconnect(this._mappedSignalId);
             if (this._widgetDestroySignalId)
                 this._widget.disconnect(this._widgetDestroySignalId);
         } catch {
@@ -126,6 +139,8 @@ class CompactTooltip extends St.Label {
         }
 
         this._hoverSignalId = 0;
+        this._reactiveSignalId = 0;
+        this._mappedSignalId = 0;
         this._widgetDestroySignalId = 0;
         this._widget = null;
     }
