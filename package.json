@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "benchmark": "node benchmarks/documentRenderView.js",
-    "check": "find src tests benchmarks -name '*.js' -exec node --check {} +",
-    "test": "node --test"
+    "check": "find src tests benchmarks gjs-tests -name '*.js' -exec node --check {} +",
+    "test": "node --test",
+    "test:gjs": "gjs -m gjs-tests/annotationRenderCache.js"
   }
 }

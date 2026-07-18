@@ -36,12 +36,20 @@ Compact Capture owns:
 - `core/gestureSequence.js`: pointer-button and touch-sequence ownership.
 - `core/keyboardShortcuts.js`: pure shortcut-to-action mapping.
 - `core/annotationRenderer.js`: Cairo rendering without storage side effects.
+- `core/annotationBounds.js`: cached visual bounds for committed annotations.
+- `core/renderCachePlan.js`: pure incremental-cache transition decisions.
 - `core/outputPlan.js`: output-scale and cursor placement calculations.
+- `core/textureCompositionPlan.js`: pure framebuffer-layer geometry and
+  resource accounting.
 - `core/selectionLifecycle.js`: explicit screenshot, capture and area-state
   transitions with reversible empty-selection effects.
 - `core/signalConnectionSet.js`: transactional session-scoped signal rebinding
   for Shell actors that GNOME recreates.
 - `shell/outputRenderer.js`: selection-sized transparent output texture.
+- `shell/annotatedOutputBridge.js`: fail-open native-save handoff and cursor
+  restoration.
+- `shell/emptySelectionController.js`: transactional native actor effect and
+  best-effort restoration.
 - `ui/annotationOverlay.js`: monitor-aware pointer and touch interaction.
 - `ui/annotationRenderCache.js`: scale-aware committed-stroke Cairo cache.
 - `ui/compactToolbar.js`: accessible Shell UI.
@@ -56,9 +64,11 @@ screenshot behaviour must continue unchanged.
 ## Adapter contract
 
 `shell/shellAdapter.js` is the only module allowed to import
-`Main.screenshotUI`, read one of its private fields or intercept one of its
-methods. It wraps `open()` and `_saveScreenshot()` on ScreenshotUI's direct
-prototype and observes the native `closed` and
+`Main.screenshotUI` or intercept one of its methods. The adapter and its narrow
+`shell/annotatedOutputBridge.js` collaborator are the only modules allowed to
+read ScreenshotUI private fields. The adapter wraps `open()` and
+`_saveScreenshot()` on ScreenshotUI's direct prototype and observes the native
+`closed` and
 screenshot/recording mode signals. Patching the prototype allows
 `InjectionManager` to restore the exact original ownership and method. The
 wrapper awaits and returns the original result; it does not catch, translate or
@@ -95,6 +105,13 @@ after its required methods have been inspected. Installation is transactional:
 if either method injection or signal connection fails, every completed step is
 rolled back. Disabling disconnects the signal and clears `InjectionManager`.
 
+Empty-selection state is committed to the lifecycle model only after its native
+actor mutations succeed. The controller snapshots selector geometry, visual
+opacity and capture-button reactivity first; partial entry rolls those values
+back and disables only the Compact Capture adapter. Exit clears controller
+ownership before attempting restoration and treats every actor independently,
+so one private-operation failure cannot abort the remaining teardown.
+
 Callbacks from Compact Capture are isolated from GNOME's open/close path so an
 annotation-side exception cannot prevent the native screenshot UI from working.
 
@@ -108,19 +125,29 @@ transparent Cairo surface sized to the selected output rather than the whole
 virtual desktop. The shared renderer draws in stage-logical coordinates at the
 native screenshot scale. GDK's supported `pixbuf_get_from_surface()` conversion
 then supplies the RGBA pixels to a Shell image texture; the extension does not
-read Cairo's private backing buffer. If GNOME's pointer option is active, the
-native cursor is folded into that texture first.
+read Cairo's private backing buffer. With the pointer disabled, that uploaded
+texture is handed to GNOME directly. With the pointer enabled, a Cogl
+offscreen framebuffer draws the annotation and native cursor textures into one
+new texture. The cursor rectangle is calculated in output pixels and clips at
+the selection boundary.
+
+This mirrors the offscreen-texture copy used by GNOME Shell itself when it
+freezes the native cursor. It performs no intermediate PNG encode and no
+texture readback. GNOME's final `composite_to_stream()` call remains the only
+readback and PNG encoding pass.
 
 `paint_to_content()` is deliberately not used for annotation output. Mutter
 exposes that method on `Meta.WindowActor` (and a separate variant on
 `Clutter.Stage`), not on a general `St.DrawingArea`.
 
-The adapter temporarily exposes this final texture through the cursor overlay
-arguments already consumed by GNOME's `captureScreenshot()` pipeline, invokes
-the original `_saveScreenshot()`, then restores the native cursor actor in a
-`finally` block. GNOME therefore still owns cropping, PNG encoding, clipboard
-MIME data, filename selection, lockdown policy, sound and notifications. No
-GNOME storage code is copied into the extension.
+The output bridge temporarily exposes this final texture through the cursor
+overlay arguments already consumed by GNOME's `captureScreenshot()` pipeline,
+invokes the original `_saveScreenshot()`, then restores the native cursor actor
+in a `finally` block. Preparation errors restore the cursor and delegate once
+to unchanged GNOME capture; errors from GNOME after delegation still propagate.
+GNOME therefore still owns cropping, PNG encoding, clipboard MIME data,
+filename selection, lockdown policy, sound and notifications. No GNOME storage
+code is copied into the extension.
 
 Before output preparation, the extension resolves the visible draft through
 its owning overlay, disables every annotation overlay and toolbar control, and
@@ -148,7 +175,8 @@ its wider default without changing the width of the regular drawing tools. The
 state is unit-testable and survives switching temporarily into recording mode.
 
 Undo and redo move complete strokes between session-local stacks. A
-new committed stroke invalidates redo history, clear resets both stacks and an
+new drawing invalidates redo history before reserving its first point, clear
+resets both stacks and an
 in-progress gesture is cancelled before committed history is changed. History
 does not survive closing ScreenshotUI because it has no meaning outside the
 captured frame.
@@ -219,23 +247,38 @@ Freehand input is sampled at a two-logical-pixel threshold and capped at 4096
 points per gesture. The complete document, including undo/redo history and an
 active draft, is capped at 65,536 points and 1024 strokes. A gesture that
 reaches the point budget keeps replacing its final point, while a new gesture
-is refused when the document cannot reserve two points.
+is refused when committed work cannot reserve two points. Beginning a
+divergent gesture discards redo first, so undo always permits replacement work.
 
 Overlay repainting uses one revisioned, read-only document view shared by all
-monitor actors. Committed strokes and points are frozen; only the active
-draft's private point storage changes during pointer motion. Each overlay
-rasterizes committed strokes into a Cairo image surface once per committed
-revision and resource scale, then paints only the active draft on live updates.
+monitor actors. A persistent chunked stroke sequence keeps prior revisions
+stable while copying at most one short stroke chunk per history transition.
+Committed strokes and points are frozen; only the active draft's private point
+storage changes during pointer motion. Each overlay retains one Cairo image
+surface: commits append one stroke, undo clears and repaints only the removed
+stroke's visual bounds, redo appends, and clear reuses the transparent surface.
+Dirty bounds are expanded outward to device-pixel boundaries relative to the
+cache surface origin before Cairo clips. Translucent overlap is therefore
+pixel-identical after undo/redo rather than recomposited through a fractional
+edge pixel.
+Only first content, resource-scale changes or a missed revision require a full
+surface allocation or redraw. The active draft remains a separate live layer.
 The resource scale is read during the Clutter paint cycle and applied as the
 Cairo device scale, preserving 100%, 200% and mixed-monitor sharpness. Undo,
-redo, clear and scale changes invalidate the relevant cache deterministically.
+redo, clear and scale changes update the relevant cache deterministically.
 
 The deep isolated `snapshot()` remains available only at the final output
 boundary, where capture correctness matters more than a one-time allocation.
 `npm run benchmark` exercises that boundary at the production point budget and
-compares it with repeated shared render-view lookup. Coordinate conversion and
+compares it with repeated shared render-view lookup. Monitor intersection and
 toolbar placement rules live in `core/geometry.js` and are covered by Node
-tests, including secondary-monitor and mixed-output-scale examples.
+tests, including secondary-monitor examples.
+
+The small `AsyncTaskGate`, `SignalConnectionSet` and `GestureSequence` helpers
+are extension scaffolding extracted so prototype invariants can be tested in
+Node. A native GNOME patch should reuse existing Shell patterns where they
+express the same invariant; these wrappers are not automatically upstream
+architecture.
 
 Window annotation remains deliberately absent. The output bridge intercepts
 only `_saveScreenshot()` and always delegates storage to its original method.

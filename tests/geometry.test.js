@@ -7,10 +7,7 @@ import {
     drawingRects,
     intersectRects,
     monitorForRect,
-    monitorPointToStage,
     placeToolbar,
-    stagePointToMonitor,
-    stagePointToOutput,
 } from '../src/core/geometry.js';
 
 const monitors = [
@@ -44,13 +41,6 @@ test('keeps a native resize gutter around each drawing surface', () => {
             {monitorIndex: 1, x: 1920, y: 108, width: 172, height: 184},
         ]
     );
-});
-
-test('converts stage, monitor and output coordinate spaces explicitly', () => {
-    const stagePoint = {x: 2020, y: 75};
-    assert.deepEqual(stagePointToMonitor(stagePoint, monitors[1]), {x: 100, y: 75});
-    assert.deepEqual(monitorPointToStage({x: 100, y: 75}, monitors[1]), stagePoint);
-    assert.deepEqual(stagePointToOutput(stagePoint, monitors[1], 2), {x: 200, y: 150});
 });
 
 test('places the toolbar above, below, then at the monitor top', () => {

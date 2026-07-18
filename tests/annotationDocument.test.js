@@ -153,8 +153,8 @@ test('shares a revisioned read-only render view without deep copies', () => {
     const committedView = document.renderView();
     assert.equal(committedView.draft, null);
     assert.equal(committedView.committed.length, 1);
-    assert.ok(Object.isFrozen(committedView.committed[0]));
-    assert.ok(Object.isFrozen(committedView.committed[0].points));
+    assert.ok(Object.isFrozen(committedView.committed.at(0)));
+    assert.ok(Object.isFrozen(committedView.committed.at(0).points));
 });
 
 test('reuses one render view across multiple overlay consumers', () => {
@@ -173,7 +173,7 @@ test('reuses one render view across multiple overlay consumers', () => {
     );
 });
 
-test('bounds all stored undo, redo and draft points for a session', () => {
+test('bounds committed, redo and draft points while allowing divergent edits', () => {
     const document = new AnnotationDocument({maxPoints: 4, maxStrokes: 2});
 
     assert.equal(document.beginStroke(validStroke), true);
@@ -194,11 +194,38 @@ test('bounds all stored undo, redo and draft points for a session', () => {
     assert.equal(document.beginStroke(validStroke), false);
     assert.equal(document.undo(), true);
     assert.equal(document.pointCount, 4);
-    assert.equal(document.beginStroke(validStroke), false);
+    assert.equal(document.beginStroke(validStroke), true);
+    assert.equal(document.pointCount, 3);
+    assert.equal(document.appendPoint({x: 5, y: 6}), true);
+    assert.equal(document.commitStroke(), true);
+    assert.equal(document.pointCount, 4);
+    assert.equal(document.canRedo, false);
 
     document.clear();
     assert.equal(document.pointCount, 0);
     assert.equal(document.beginStroke(validStroke), true);
+});
+
+test('keeps prior committed render sequences stable across history changes', () => {
+    const document = new AnnotationDocument();
+    document.beginStroke(validStroke);
+    document.appendPoint({x: 2, y: 3});
+    document.commitStroke();
+    const firstSequence = document.renderView().committed;
+
+    document.beginStroke({...validStroke, point: {x: 10, y: 20}});
+    document.appendPoint({x: 30, y: 40});
+    document.commitStroke();
+    const secondSequence = document.renderView().committed;
+
+    assert.deepEqual([...firstSequence].map(stroke => stroke.points[0]), [
+        {x: 1, y: 2},
+    ]);
+    assert.equal(secondSequence.length, 2);
+
+    document.undo();
+    assert.strictEqual(document.renderView().committed.at(0), firstSequence.at(0));
+    assert.equal(document.renderView().committed.length, 1);
 });
 
 test('releases invalidated redo points after a new commit', () => {

@@ -4,6 +4,13 @@ Compact Capture is an experimental extension and an upstream design prototype.
 Each pull request must remain independently reviewable, leave GNOME's native
 capture path usable and include tests for new Shell-independent behaviour.
 
+Manual acceptance is tracked in the
+[cumulative test checklist](docs/CUMULATIVE-TEST-CHECKLIST.md). Starting with
+PR 12, each PR-specific test contract must reference that checklist, add its
+new coverage there and carry forward unresolved applicable rows. Historical
+results remain tied to the commit and environment that produced them; a code
+fix does not become a manual Pass until the affected row is rerun.
+
 The private ScreenshotUI adapter and extension lifecycle are prototype code.
 The annotation model, rendering rules, interaction design and tests are the
 parts intended to inform a later GNOME Shell patch series.
@@ -106,7 +113,7 @@ Status: merged.
 
 ### PR 10 — Atomic capture and input ownership
 
-Status: in progress.
+Status: merged.
 
 - Commit or cancel the visible draft before freezing one output snapshot.
 - Disable annotation input for the duration of native asynchronous capture and
@@ -117,12 +124,24 @@ Status: in progress.
 
 ### PR 11 — Cursor and output-bridge performance
 
+Status: in progress.
+
 - Replace the otherwise-unused PNG encoding pass in cursor composition with a
   supported raw-texture, Cairo or Cogl route.
 - Measure pointer-on and pointer-off capture time and memory at 4K and 200%
   scaling while preserving output parity.
 - Extract annotated-output interception and cursor restoration from the main
   adapter behind a narrow, fail-open interface.
+- Make empty-selection actor effects transactional and teardown best-effort so
+  private actor failures cannot strand the lifecycle model or abort cleanup.
+- Let divergent edits reclaim redo capacity and replace full stroke-array
+  copies with persistent read-only history views.
+- Retain committed Cairo surfaces, append new strokes directly and repaint only
+  dirty bounds for undo before pixelate and blur increase rendering cost.
+- Align dirty clips outward to cache device pixels and regression-test
+  translucent undo/redo with real Cairo at 100% and 200% scale.
+- Require real-session output, alpha, cursor-edge and 4K performance results in
+  `docs/PR11-TESTING.md`; structural Node tests are not treated as pixel proof.
 
 ### PR 12 — Pixelate and blur
 
