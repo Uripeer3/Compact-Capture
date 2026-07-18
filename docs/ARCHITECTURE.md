@@ -90,8 +90,9 @@ Placement is selection-aware: controls stay hidden during an area drag, prefer
 the space above or below the completed selection, and use the top of the
 selected monitor as the fallback.
 
-Area mode starts with GNOME's default rectangle temporarily moved off-stage and
-its selector visuals hidden. The native capture button and native capture
+Area mode starts with GNOME's default rectangle temporarily moved off-stage.
+Its selection cutout, border and handles are hidden while GNOME's native shade
+continues to dim the captured desktop. The native capture button and capture
 shortcuts are gated while no area exists. The adapter restores the selector on
 the first native drag, when leaving area mode, and during disable/close cleanup.
 This keeps the empty state reversible and leaves GNOME's selector implementation

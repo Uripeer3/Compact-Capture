@@ -78,8 +78,19 @@ export function inspectScreenshotUi(shellVersion, screenshotUi) {
             }
         }
 
+        const areaIndicator = areaSelector?._areaIndicator;
+        if (typeof areaIndicator?.setSelectionRect !== 'function') {
+            issues.push(
+                'Main.screenshotUI._areaSelector._areaIndicator.setSelectionRect is unavailable'
+            );
+        }
+        if (!Number.isFinite(areaIndicator?._selectionRect?.opacity)) {
+            issues.push(
+                'Main.screenshotUI._areaSelector._areaIndicator._selectionRect.opacity is unavailable'
+            );
+        }
+
         for (const field of [
-            '_areaIndicator',
             '_topLeftHandle',
             '_topRightHandle',
             '_bottomLeftHandle',

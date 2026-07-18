@@ -9,13 +9,19 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {inspectScreenshotUi} from './screenshotUiContract.js';
 
 const EMPTY_SELECTION_COORDINATE = -1_000_000;
-const SELECTION_VISUAL_FIELDS = Object.freeze([
-    '_areaIndicator',
+const SELECTION_HANDLE_FIELDS = Object.freeze([
     '_topLeftHandle',
     '_topRightHandle',
     '_bottomLeftHandle',
     '_bottomRightHandle',
 ]);
+
+function selectionVisualActors(selector) {
+    return [
+        selector._areaIndicator._selectionRect,
+        ...SELECTION_HANDLE_FIELDS.map(field => selector[field]),
+    ];
+}
 
 function freezeMonitor(monitor, index) {
     return Object.freeze({
@@ -486,16 +492,16 @@ export class ScreenshotUiAdapter {
 
         const selector = this.#screenshotUi._areaSelector;
         this.#selectionVisualOpacities = new Map(
-            SELECTION_VISUAL_FIELDS.map(field => [
-                field,
-                selector[field].opacity,
+            selectionVisualActors(selector).map(actor => [
+                actor,
+                actor.opacity,
             ])
         );
         this.#captureButtonReactive =
             this.#screenshotUi._captureButton.reactive;
 
-        for (const field of SELECTION_VISUAL_FIELDS)
-            selector[field].opacity = 0;
+        for (const actor of this.#selectionVisualOpacities.keys())
+            actor.opacity = 0;
 
         // Keep GNOME's selector intact, but move its current rectangle far
         // outside the stage. Its native press handler will consequently start
@@ -505,6 +511,9 @@ export class ScreenshotUiAdapter {
         selector._lastX = EMPTY_SELECTION_COORDINATE;
         selector._lastY = EMPTY_SELECTION_COORDINATE;
         selector._updateSelectionRect();
+        // Preserve GNOME's native shade while collapsing only its transparent
+        // selection cutout to an effectively invisible corner pixel.
+        selector._areaIndicator.setSelectionRect(0, 0, 1, 1);
         selector.set_cursor_type(Clutter.CursorType.CROSSHAIR);
         this.#screenshotUi._captureButton.reactive = false;
         this.#emptySelection = true;
@@ -520,10 +529,8 @@ export class ScreenshotUiAdapter {
         if (resetGeometry)
             selector.reset();
 
-        for (const field of SELECTION_VISUAL_FIELDS) {
-            selector[field].opacity =
-                this.#selectionVisualOpacities.get(field);
-        }
+        for (const [actor, opacity] of this.#selectionVisualOpacities)
+            actor.opacity = opacity;
         this.#screenshotUi._captureButton.reactive =
             this.#captureButtonReactive;
 

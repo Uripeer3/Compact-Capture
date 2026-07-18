@@ -7,8 +7,9 @@ not yet include them in the saved PNG or clipboard image; that is PR 5.
 
 1. Install the branch build and restart GNOME Shell as required by the session.
 2. Enable Compact Capture and open GNOME's screenshot interface.
-3. In Selection mode, confirm there is no initial rectangle, the annotation
-   toolbar is hidden, and the selection/full-screen hint is visible.
+3. In Selection mode, confirm the desktop is dimmed, there is no initial
+   rectangle, the annotation toolbar is hidden, and the selection/full-screen
+   hint is visible.
 4. Confirm Enter, Space and Ctrl+C do not capture an invisible default area.
 5. Drag a new area. Confirm the hint disappears, the native rectangle follows
    the pointer, and the toolbar appears above or below it. Confirm that each
