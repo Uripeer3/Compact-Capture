@@ -72,14 +72,15 @@
 }
 
 .compact-capture-color-swatch {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
+    border: 1px solid st-transparentize(-st-accent-fg-color, 0.55);
     border-radius: 999px;
-    box-shadow: 0 0 0 1px st-transparentize(-st-accent-fg-color, 0.55);
+    box-shadow: none;
 }
 
 .compact-capture-color-button:checked .compact-capture-color-swatch {
-    box-shadow: 0 0 0 2px -st-accent-color;
+    border: 2px solid -st-accent-color;
 }
 
 .compact-capture-line-width {

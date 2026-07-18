@@ -15,6 +15,8 @@ npm run check
    swatches and symbolic artwork remain visually smaller.
 2. Hover, press and select each tool. Hover, active and checked states must be
    visually distinct in both the light and dark Shell styles.
+   Colour swatches and their checked outlines must remain circular without a
+   faceted shadow edge.
 3. Draw one stroke, then exercise Undo, Redo and Clear. Disabled actions must
    have no hover highlight or hint; enabled actions must restore both.
 4. Move keyboard focus with `Tab` and `Shift+Tab`. The focus ring must remain
