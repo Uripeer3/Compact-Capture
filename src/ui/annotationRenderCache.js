@@ -68,7 +68,7 @@ export class AnnotationRenderCache {
                 scale
             );
         else if (update === CacheUpdate.CLEAR)
-            this.#redrawAll([]);
+            this.#replaceSurface([], scale);
         else if (update === CacheUpdate.FULL)
             this.#redrawAll(view.committed);
 

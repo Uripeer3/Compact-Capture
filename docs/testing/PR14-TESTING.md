@@ -13,7 +13,7 @@ manual pass from automated coverage.
 | Node suite | `npm test` passes |  |
 | Syntax | `npm run check` passes |  |
 | Bounded work | `npm run benchmark` reports 65,536 points and completes document snapshot plus SVG serialization without failure |  |
-| GJS pixels | `npm run test:gjs` passes Cairo dirty-redraw parity and in-memory SVG rasterization |  |
+| GJS pixels | `npm run test:gjs` passes horizontal and diagonal-cap Cairo dirty-redraw parity at 1×/2×, plus small and 4K in-memory SVG rasterization; record the reported 4K time |  |
 | Build | `./build.sh` creates the GNOME extension ZIP |  |
 | Manifest | `bash tools/verify-package.sh` accepts the ZIP and rejects no runtime entry |  |
 | Review audit | No Shell runtime module imports `Gdk`, `Gtk` or `Adw`; metadata, attribution and package contents match the current GNOME review rules |  |
@@ -42,6 +42,8 @@ arrow and overlapping highlighter strokes. Repeat with the pointer off and on.
 | P14-O3 | Pointer edges, hotspot, clipping and scale match GNOME output |  |
 | P14-O4 | Empty document, Window capture and recording remain pixel/behavior compatible with native GNOME |  |
 | P14-O5 | Ten repeated captures leave clipboard/save functional and produce no unexplained journal error |  |
+| P14-O6 | Undo and redo a width-16 diagonal highlighter at 100% and 200%; its square end caps leave no stale or missing pixels |  |
+| P14-O7 | In Screen mode, drawing can start at every screen edge; in Area mode, resize handles remain usable instead |  |
 
 ## Performance and bounded behavior
 
@@ -55,6 +57,12 @@ the pointer off and once with it on.
 | P14-P2 | A document near the 65,536-point budget captures successfully or fails open to native GNOME without freezing Shell |  |
 | P14-P3 | Ten 4K captures complete without an increasing persistent RSS trend or a Shell restart |  |
 | P14-P4 | SVG output preparation adds no temporary file, subprocess, network access or intermediate PNG |  |
+| P14-P5 | Output estimated above the 128 MiB annotation budget logs one bounded failure and GNOME still saves/copies the unannotated native image without freezing Shell |  |
+| P14-P6 | After Clear, idle Shell RSS does not retain one additional full-monitor Cairo surface per overlay; drawing again reallocates normally |  |
+
+For P14-P5, pointer-enabled 5120×2880 output exceeds the budget. If that output
+size cannot be produced by the available monitor layout, mark the row blocked
+rather than weakening the limit or inferring a pass.
 
 ## Lifecycle and accessibility regression
 
@@ -66,6 +74,8 @@ the pointer off and once with it on.
 | P14-L3 | Keyboard focus, checked and insensitive states remain visible at 100% and 200% |  |
 | P14-L4 | Five enable/disable and five open/close cycles restore every GNOME actor and shortcut |  |
 | P14-L5 | Full journal review contains no unexplained Compact Capture, GJS, GdkPixbuf or Cogl error |  |
+| P14-L6 | Start a capture, then close ScreenshotUI or disable the extension while save is pending; reopening does not inherit cursor content, position, opacity, visibility or scale |  |
+| P14-L7 | During a touch drawing gesture, a second touch cannot move, finish or cancel the initiating touch's stroke |  |
 
 ## Final acceptance
 

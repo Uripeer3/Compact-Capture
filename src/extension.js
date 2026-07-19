@@ -54,6 +54,8 @@ export default class CompactCaptureExtension extends Extension {
                 this._refreshSession(session);
             },
             onShortcut: action => this._handleShortcut(action),
+            hasCaptureContent: () => this._document.hasAnnotations ||
+                this._document.isDrawing,
             prepareCapture: () => this._prepareCapture(),
             onClosed: () => {
                 this._capturePreparation.cancel();
@@ -140,10 +142,13 @@ export default class CompactCaptureExtension extends Extension {
         toolbar.setInputEnabled(this._annotationInputEnabled);
         this._placeToolbar(toolbarMonitor);
 
+        const drawingGutter = session.captureType === CaptureType.SELECTION
+            ? DRAWING_GUTTER
+            : 0;
         for (const stageRect of drawingRects(
             session.selection,
             session.monitors,
-            DRAWING_GUTTER
+            drawingGutter
         )) {
             const overlay = new AnnotationOverlay({
                 document: this._document,

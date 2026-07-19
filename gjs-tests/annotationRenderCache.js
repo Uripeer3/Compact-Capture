@@ -163,6 +163,57 @@ function runCase(scale, rectangleStartX) {
     }
 }
 
+function runDiagonalHighlighterCapCase(scale) {
+    const highlighter = freezeStroke({
+        tool: Tool.HIGHLIGHTER,
+        color: '#ffff00',
+        width: 16,
+        points: [{x: 350, y: 60}, {x: 390, y: 100}],
+    });
+    // Its dirty region begins beyond the old width / 2 + 1 bound but crosses
+    // pixels covered by the diagonal square cap.
+    const removedRectangle = freezeStroke({
+        tool: Tool.RECTANGLE,
+        color: '#ff0000',
+        width: 3,
+        points: [{x: 402, y: 70}, {x: 402, y: 110}],
+    });
+    const cache = new AnnotationRenderCache(STAGE_RECT);
+    const initial = paintCache(cache, {
+        committedRevision: 1,
+        committedChange: null,
+        committed: [highlighter, removedRectangle],
+        draft: null,
+    }, scale);
+    initial.finish();
+
+    const expected = paintExpected([highlighter], scale);
+    const expectedPixels = surfacePixels(expected, scale);
+    expected.finish();
+    const undo = paintCache(cache, {
+        committedRevision: 2,
+        committedChange: {
+            type: CommittedChangeType.REMOVE,
+            stroke: removedRectangle,
+            bounds: annotationBounds(removedRectangle),
+        },
+        committed: [highlighter],
+        draft: null,
+    }, scale);
+    try {
+        assertPixelIdentical(
+            surfacePixels(undo, scale),
+            expectedPixels,
+            `${scale}x diagonal highlighter cap undo`
+        );
+    } finally {
+        undo.finish();
+        cache.destroy();
+    }
+}
+
 runCase(1, 390);
 runCase(2, 390.25);
+runDiagonalHighlighterCapCase(1);
+runDiagonalHighlighterCapCase(2);
 print('Cairo dirty-redraw pixel parity passed at 1x and 2x');

@@ -60,8 +60,14 @@ export function annotationBounds(stroke) {
 
     let extents = extendPointExtents(emptyPointExtents(), stroke.points);
     extents = extendPointExtents(extents, arrowHeadPoints(stroke));
-    // Include half the stroke width and one logical pixel for antialiasing.
-    const margin = stroke.width / 2 + 1;
+    // A square line cap can extend by width / sqrt(2) on either axis when the
+    // final segment is diagonal. Other tools use round/butt caps whose axis
+    // extent is bounded by half the stroke width. Keep one logical pixel for
+    // Cairo antialiasing in both cases.
+    const capExtent = stroke.tool === Tool.HIGHLIGHTER
+        ? stroke.width / Math.SQRT2
+        : stroke.width / 2;
+    const margin = capExtent + 1;
 
     const bounds = Object.freeze({
         x: extents.minimumX - margin,

@@ -50,9 +50,10 @@ of the main ScreenshotUI adapter.
 
 Committed annotations now use persistent read-only history views and a retained
 Cairo cache. New strokes append directly; undo clears and repaints only the
-affected bounds; redo and clear reuse the existing monitor surface. Undo also
-frees its redo budget as soon as a divergent drawing begins, so the safety
-limit cannot leave the editor stuck.
+affected bounds; redo reuses the existing monitor surface, while Clear releases
+it to return monitor-sized memory while the document is empty. Undo also frees
+its redo budget as soon as a divergent drawing begins, so the safety limit
+cannot leave the editor stuck.
 
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.

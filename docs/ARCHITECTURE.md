@@ -130,7 +130,9 @@ annotation-side exception cannot prevent the native screenshot UI from working.
 ## Output boundary
 
 An empty annotation document calls GNOME's original `_saveScreenshot()` with no
-intermediate work or state changes. Window capture remains on that same path.
+intermediate work or state changes: the adapter reads the document's constant-
+time committed/draft flags before it enters the asynchronous preparation gate.
+Window capture remains on that same path.
 
 For an annotated area or screen capture, `shell/outputRenderer.js` serializes
 the frozen document into one validated SVG sized to the selected output rather
@@ -141,6 +143,14 @@ subprocess. With the pointer disabled, that uploaded texture is handed to GNOME
 directly. With the pointer enabled, a Cogl offscreen framebuffer draws the
 annotation and native cursor textures into one new texture. The cursor
 rectangle is calculated in output pixels and clips at the selection boundary.
+
+`core/outputPlan.js` rejects annotation output above a 128 MiB estimated
+transient RGBA budget before allocating a selection-sized surface. The estimate
+counts the GdkPixbuf raster and uploaded texture, plus the Cogl composition
+texture when the pointer is visible. This admits 4K pointer output at about
+95 MiB and fails open to unchanged GNOME capture for larger work. The limit
+contains the extension transport; native integration should remove the SVG and
+cursor-transport duplication rather than preserve this ceiling unchanged.
 
 Preview and retained-cache rendering remain Cairo-based. The SVG renderer uses
 the same tool geometry, line caps, joins, width, colour and highlighter opacity;
@@ -157,8 +167,13 @@ exposes that method on `Meta.WindowActor` (and a separate variant on
 The output bridge temporarily exposes this final texture through the cursor
 overlay arguments already consumed by GNOME's `captureScreenshot()` pipeline,
 invokes the original `_saveScreenshot()`, then restores the native cursor actor
-in a `finally` block. Preparation errors restore the cursor and delegate once
-to unchanged GNOME capture; errors from GNOME after delegation still propagate.
+in a `finally` block. Each save owns a session generation and the exact cursor
+actor it modified. Close, reopen and disable invalidate that ownership; a late
+completion cannot modify a replacement actor or later session. Content,
+position, visibility, opacity and scale restore independently so one private-
+API failure cannot prevent the remaining restoration. Preparation errors
+delegate once to unchanged GNOME capture; errors from GNOME after delegation
+still propagate.
 GNOME therefore still owns cropping, PNG encoding, clipboard MIME data,
 filename selection, lockdown policy, sound and notifications. No GNOME storage
 code is copied into the extension.
@@ -246,7 +261,8 @@ edge.
 `ui/annotationOverlay.js` owns pointer/touch gestures and Cairo preview only.
 It stores stage-logical points in the Shell-independent annotation document.
 Small drawing actors cover only the selected region on each intersecting
-monitor; an eight-pixel outer gutter remains available to GNOME's native resize
+monitor. Area mode reserves an eight-pixel outer gutter for GNOME's native
+resize handles; Screen mode covers the monitor edges because it has no area
 handles. Starting a native selection drag removes the overlays and controls,
 then rebuilds them from the completed geometry.
 
@@ -270,11 +286,13 @@ stable while copying at most one short stroke chunk per history transition.
 Committed strokes and points are frozen; only the active draft's private point
 storage changes during pointer motion. Each overlay retains one Cairo image
 surface: commits append one stroke, undo clears and repaints only the removed
-stroke's visual bounds, redo appends, and clear reuses the transparent surface.
+stroke's visual bounds, redo appends, and Clear finishes and releases the
+surface so an empty editor does not retain a monitor-sized allocation.
 Dirty bounds are expanded outward to device-pixel boundaries relative to the
 cache surface origin before Cairo clips. Translucent overlap is therefore
 pixel-identical after undo/redo rather than recomposited through a fractional
-edge pixel.
+edge pixel. Highlighter bounds account for the full axis extent of diagonal
+square caps, not only half the stroke width.
 Only first content, resource-scale changes or a missed revision require a full
 surface allocation or redraw. The active draft remains a separate live layer.
 The resource scale is read during the Clutter paint cycle and applied as the

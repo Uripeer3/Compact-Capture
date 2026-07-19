@@ -362,15 +362,19 @@ historical evidence.
 | [ ] | P14-R1 | Audit metadata, runtime imports, attribution and actual ZIP contents against current GNOME review rules. |  |
 | [ ] | P14-X1 | Full journal review contains no unexplained Compact Capture, GJS, GdkPixbuf or Cogl error. |  |
 | [ ] | P14-X2 | Record the accepted ZIP SHA-256, reviewer and date before tagging. |  |
+| [ ] | P14-R2 | Verify diagonal highlighter undo/redo, zero-gutter Screen drawing and Area handle access at 100% and 200%. |  |
+| [ ] | P14-R3 | Close and disable during an active save; a later session retains only its own cursor actor state. |  |
+| [ ] | P14-R4 | Record 4K SVG raster time, ten-capture RSS, Clear memory release and over-budget native fallback evidence. |  |
 
 ## Current blockers and next run
 
 1. Rerun every applicable unresolved PR 11 and PR 13 row on the PR 14 candidate;
    fixes do not rewrite the historical result recorded above.
 2. Validate the new in-memory SVG output path at 100%, 200% and mixed scale,
-   including translucent overlaps and pointer edges.
+   including translucent overlaps, diagonal square caps and pointer edges.
 3. Use physical mixed-scale monitors and a real touch device for rows that
    cannot be represented by automated fixtures.
-4. Complete the ten-capture 4K/200% performance run and record RSS evidence.
+4. Complete the ten-capture 4K/200% performance run, Clear/reallocate check,
+   over-budget fallback and session-invalidation save; record RSS evidence.
 5. Build, verify and hash the final ZIP only after the exact candidate commit
    passes all applicable release rows.

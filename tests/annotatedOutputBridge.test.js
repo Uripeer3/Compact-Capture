@@ -7,6 +7,16 @@ import {
     AnnotatedOutputBridge,
 } from '../src/shell/annotatedOutputBridge.js';
 
+function deferred() {
+    let resolve;
+    let reject;
+    const promise = new Promise((resolvePromise, rejectPromise) => {
+        resolve = resolvePromise;
+        reject = rejectPromise;
+    });
+    return {promise, resolve, reject};
+}
+
 function fixture({createOutput, nativeSave}) {
     const originalContent = {
         get_texture: () => ({
@@ -121,4 +131,163 @@ test('propagates native errors after delegation and still restores', async () =>
     assert.equal(setup.actor.content, setup.originalContent);
     assert.equal(setup.screenshotUi._cursorScale, 1.5);
     assert.deepEqual(setup.errors, []);
+});
+
+test('does not restore into a replacement cursor actor', async () => {
+    const nativeEntered = deferred();
+    const nativeFinished = deferred();
+    const outputContent = {};
+    const setup = fixture({
+        createOutput: async () => ({
+            content: outputContent,
+            x: 10,
+            y: 10,
+            scale: 0.5,
+        }),
+        nativeSave() {
+            nativeEntered.resolve();
+            return nativeFinished.promise;
+        },
+    });
+
+    const save = setup.save();
+    await nativeEntered.promise;
+    const replacement = {
+        content: {replacement: true},
+        visible: false,
+        opacity: 17,
+        x: 1,
+        y: 2,
+    };
+    setup.screenshotUi._cursor = replacement;
+    setup.screenshotUi._cursorScale = 3;
+    nativeFinished.resolve('saved');
+
+    assert.equal(await save, 'saved');
+    assert.equal(replacement.content.replacement, true);
+    assert.equal(replacement.opacity, 17);
+    assert.equal(setup.screenshotUi._cursorScale, 3);
+    assert.equal(setup.actor.content, outputContent);
+});
+
+test('session invalidation prevents a late save from restoring newer state', async () => {
+    const nativeEntered = deferred();
+    const nativeFinished = deferred();
+    const setup = fixture({
+        createOutput: async () => ({
+            content: {},
+            x: 10,
+            y: 10,
+            scale: 0.5,
+        }),
+        nativeSave() {
+            nativeEntered.resolve();
+            return nativeFinished.promise;
+        },
+    });
+
+    const save = setup.save();
+    await nativeEntered.promise;
+    setup.bridge.invalidate();
+    assert.equal(setup.actor.content, setup.originalContent);
+
+    const nextSessionContent = {};
+    setup.actor.content = nextSessionContent;
+    setup.actor.opacity = 101;
+    setup.screenshotUi._cursorScale = 2;
+    nativeFinished.resolve('saved');
+
+    assert.equal(await save, 'saved');
+    assert.equal(setup.actor.content, nextSessionContent);
+    assert.equal(setup.actor.opacity, 101);
+    assert.equal(setup.screenshotUi._cursorScale, 2);
+});
+
+test('invalidation during rendering prevents stale output installation', async () => {
+    const renderEntered = deferred();
+    const renderFinished = deferred();
+    const outputContent = {};
+    const setup = fixture({
+        createOutput: async () => {
+            renderEntered.resolve();
+            await renderFinished.promise;
+            return {
+                content: outputContent,
+                x: 10,
+                y: 10,
+                scale: 0.5,
+            };
+        },
+        nativeSave() {
+            assert.equal(this._cursor.content, setup.originalContent);
+            return 'native';
+        },
+    });
+
+    const save = setup.save();
+    await renderEntered.promise;
+    setup.bridge.invalidate();
+    renderFinished.resolve();
+
+    assert.equal(await save, 'native');
+    assert.equal(setup.actor.content, setup.originalContent);
+});
+
+test('reentrant invalidation stops a partially installed output', async () => {
+    const outputContent = {};
+    const setup = fixture({
+        createOutput: async () => ({
+            content: outputContent,
+            x: 10,
+            y: 10,
+            scale: 0.5,
+        }),
+        nativeSave() {
+            assert.equal(this._cursor.content, setup.originalContent);
+            assert.equal(this._cursor.opacity, 255);
+            return 'native';
+        },
+    });
+    const setContent = setup.actor.set_content;
+    setup.actor.set_content = function (content) {
+        setContent.call(this, content);
+        if (content === outputContent)
+            setup.bridge.invalidate();
+    };
+
+    assert.equal(await setup.save(), 'native');
+    assert.equal(setup.actor.content, setup.originalContent);
+    assert.equal(setup.actor.opacity, 255);
+    assert.equal(setup.errors.length, 1);
+});
+
+test('restores independent cursor properties when content restoration fails', async () => {
+    const outputContent = {};
+    const setup = fixture({
+        createOutput: async () => ({
+            content: outputContent,
+            x: 10,
+            y: 10,
+            scale: 0.5,
+        }),
+        nativeSave() {
+            return 'saved';
+        },
+    });
+    const setContent = setup.actor.set_content;
+    setup.actor.set_content = function (content) {
+        if (content === setup.originalContent)
+            throw new Error('content restore failed');
+        setContent.call(this, content);
+    };
+
+    assert.equal(await setup.save(), 'saved');
+    assert.equal(setup.actor.content, outputContent);
+    assert.equal(setup.actor.x, 20);
+    assert.equal(setup.actor.y, 30);
+    assert.equal(setup.actor.visible, true);
+    assert.equal(setup.actor.opacity, 255);
+    assert.equal(setup.screenshotUi._cursorScale, 1.5);
+    assert.equal(setup.errors.length, 1);
+    assert.match(setup.errors[0][0], /cursor content/);
 });
