@@ -291,8 +291,11 @@ surface so an empty editor does not retain a monitor-sized allocation.
 Dirty bounds are expanded outward to device-pixel boundaries relative to the
 cache surface origin before Cairo clips. Translucent overlap is therefore
 pixel-identical after undo/redo rather than recomposited through a fractional
-edge pixel. Highlighter bounds account for the full axis extent of diagonal
-square caps, not only half the stroke width.
+edge pixel. If a dirty region crosses a translucent highlighter, the retained
+surface is redrawn without reallocating it; clipping through the translucent
+stroke can otherwise change edge-channel rounding. Highlighter bounds account
+for the full axis extent of diagonal square caps, not only half the stroke
+width.
 Only first content, resource-scale changes or a missed revision require a full
 surface allocation or redraw. The active draft remains a separate live layer.
 The resource scale is read during the Clutter paint cycle and applied as the
