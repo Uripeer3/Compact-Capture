@@ -33,8 +33,8 @@ monitors.
 Area and screen annotations are now composited into copied and saved
 screenshots through GNOME's native output path. Captures without annotations,
 window captures and screen recordings continue through GNOME unchanged. The
-project remains pre-release while editing completeness and compatibility work
-continue.
+project is a Version 0.1 release candidate while the real-session release
+matrix is completed.
 
 Capture preparation is atomic: a visible drawing gesture is resolved before
 one isolated document snapshot is taken, annotation controls remain
@@ -50,9 +50,10 @@ of the main ScreenshotUI adapter.
 
 Committed annotations now use persistent read-only history views and a retained
 Cairo cache. New strokes append directly; undo clears and repaints only the
-affected bounds; redo and clear reuse the existing monitor surface. Undo also
-frees its redo budget as soon as a divergent drawing begins, so the safety
-limit cannot leave the editor stuck.
+affected bounds; redo reuses the existing monitor surface, while Clear releases
+it to return monitor-sized memory while the document is empty. Undo also frees
+its redo budget as soon as a divergent drawing begins, so the safety limit
+cannot leave the editor stuck.
 
 If the expected GNOME interface is unavailable, the adapter stays disabled and
 GNOME's original screenshot behaviour continues unchanged.
@@ -93,9 +94,9 @@ loaded modules; after replacing extension files, a fresh login is the reliable
 way to test new JavaScript. Installing a normal extension through GNOME's
 extension service hides most of this discovery and update lifecycle.
 
-See [docs/PR13-TESTING.md](docs/PR13-TESTING.md) for the current real-session
-acceptance checklist and the other per-PR testing documents in `docs/` for
-historical checks.
+See [docs/testing/PR14-TESTING.md](docs/testing/PR14-TESTING.md) for the current
+real-session release checklist and [docs/README.md](docs/README.md) for the
+documentation map.
 
 ## Licence and provenance
 

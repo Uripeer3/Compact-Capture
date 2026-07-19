@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-import Cairo from 'gi://cairo';
 import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
+import GdkPixbuf from 'gi://GdkPixbuf';
 import St from 'gi://St';
 
-import {renderAnnotations} from '../core/annotationRenderer.js';
+import {renderAnnotationsToSvg} from '../core/annotationSvgRenderer.js';
 import {createOutputPlan} from '../core/outputPlan.js';
 import {
     createTextureCompositionPlan,
@@ -29,6 +29,20 @@ function contentFromPixbuf(pixbuf) {
         pixbuf.rowstride
     );
     return content;
+}
+
+function annotationContent(strokes, plan) {
+    const loader = GdkPixbuf.PixbufLoader.new_with_type('svg');
+    const svg = renderAnnotationsToSvg(strokes, plan);
+
+    loader.set_size(plan.pixelWidth, plan.pixelHeight);
+    loader.write(new TextEncoder().encode(svg));
+    loader.close();
+
+    const pixbuf = loader.get_pixbuf();
+    if (!pixbuf)
+        throw new Error('GdkPixbuf could not rasterize annotation output');
+    return contentFromPixbuf(pixbuf);
 }
 
 function addCursor(content, plan) {
@@ -83,43 +97,11 @@ export function createAnnotationOutput({
         outputScale,
         cursor,
     });
-    const surface = new Cairo.ImageSurface(
-        Cairo.Format.ARGB32,
-        plan.pixelWidth,
-        plan.pixelHeight
-    );
-    const cr = new Cairo.Context(surface);
-
-    try {
-        cr.scale(plan.textureScale, plan.textureScale);
-        cr.translate(-plan.originX, -plan.originY);
-        renderAnnotations(cr, strokes);
-    } finally {
-        cr.$dispose();
-    }
-
-    try {
-        surface.flush();
-        // paint_to_content() belongs to Meta.WindowActor and Clutter.Stage,
-        // not St.DrawingArea. GDK exposes Cairo's supported pixel conversion.
-        const pixbuf = imports.gi.Gdk.pixbuf_get_from_surface(
-            surface,
-            0,
-            0,
-            plan.pixelWidth,
-            plan.pixelHeight
-        );
-        if (!pixbuf)
-            throw new Error('GDK could not convert the annotation surface');
-
-        const content = contentFromPixbuf(pixbuf);
-        return Object.freeze({
-            content: addCursor(content, plan),
-            x: plan.originX,
-            y: plan.originY,
-            scale: plan.overlayScale,
-        });
-    } finally {
-        surface.finish();
-    }
+    const content = annotationContent(strokes, plan);
+    return Object.freeze({
+        content: addCursor(content, plan),
+        x: plan.originX,
+        y: plan.originY,
+        scale: plan.overlayScale,
+    });
 }

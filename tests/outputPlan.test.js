@@ -3,7 +3,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {createOutputPlan} from '../src/core/outputPlan.js';
+import {
+    createOutputPlan,
+    MAX_ANNOTATION_OUTPUT_BYTES,
+} from '../src/core/outputPlan.js';
 
 test('creates a selection-sized output texture at screenshot scale', () => {
     assert.deepEqual(createOutputPlan({
@@ -16,6 +19,7 @@ test('creates a selection-sized output texture at screenshot scale', () => {
         logicalHeight: 360,
         pixelWidth: 1280,
         pixelHeight: 720,
+        estimatedTransientBytes: 1280 * 720 * 4 * 2,
         textureScale: 2,
         overlayScale: 0.5,
         cursor: null,
@@ -46,6 +50,7 @@ test('places the native pointer relative to the selected output', () => {
     });
     assert.equal(plan.pixelWidth, 1920);
     assert.equal(plan.pixelHeight, 1080);
+    assert.equal(plan.estimatedTransientBytes, 1920 * 1080 * 4 * 3);
 });
 
 test('keeps an off-selection pointer rectangle for framebuffer clipping', () => {
@@ -98,6 +103,43 @@ test('rounds fractional-scale output dimensions to complete pixels', () => {
 
     assert.equal(plan.pixelWidth, 152);
     assert.equal(plan.pixelHeight, 77);
+});
+
+test('admits 4K pointer output within the allocation budget', () => {
+    const plan = createOutputPlan({
+        selection: {x: 0, y: 0, width: 3840, height: 2160},
+        outputScale: 1,
+        cursor: {
+            texture: {},
+            x: 0,
+            y: 0,
+            width: 24,
+            height: 24,
+            scale: 1,
+        },
+    });
+
+    assert.equal(plan.estimatedTransientBytes, 3840 * 2160 * 4 * 3);
+    assert.ok(plan.estimatedTransientBytes < MAX_ANNOTATION_OUTPUT_BYTES);
+});
+
+test('rejects oversized output before allocating a surface', () => {
+    assert.throws(() => createOutputPlan({
+        selection: {x: 0, y: 0, width: 5120, height: 2880},
+        outputScale: 1,
+        cursor: {
+            texture: {},
+            x: 0,
+            y: 0,
+            width: 24,
+            height: 24,
+            scale: 1,
+        },
+    }), /128 MiB/);
+    assert.throws(() => createOutputPlan({
+        selection: {x: 0, y: 0, width: Number.MAX_VALUE, height: 100},
+        outputScale: 2,
+    }), /too large/);
 });
 
 test('rejects malformed geometry and scales', () => {

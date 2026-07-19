@@ -53,5 +53,5 @@ Pixelate, blur, text, numbered markers, selecting or moving existing
 annotations, window annotations, OCR, custom save flows and external export
 integrations are explicitly deferred. Obscure-tool interaction and rendering
 requirements now live in the
-[Version 0.2 roadmap](v2_roadmap.md), keeping this document limited to the
+[Version 0.2 roadmap](v2/ROADMAP.md), keeping this document limited to the
 approved v0.1 contract.

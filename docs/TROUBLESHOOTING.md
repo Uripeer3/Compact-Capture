@@ -57,6 +57,11 @@ and delegates to GNOME's unchanged capture path. The resulting screenshot may
 therefore omit annotations; it must not leave the native cursor, selector or
 capture controls stuck.
 
+The same fallback is expected when annotation output would exceed the 128 MiB
+transient allocation budget. The limit is checked before a selection-sized
+annotation surface is allocated, so very large captures remain native rather
+than risking GNOME Shell responsiveness.
+
 ## Workflow checks
 
 - Area capture begins with GNOME's shade and the translated selection hint, but

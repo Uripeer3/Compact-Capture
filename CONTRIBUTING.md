@@ -14,6 +14,8 @@ Before submitting a change:
 6. Add or update a focused manual test document for Shell-visible behaviour.
 7. Update `README.md`, `ROADMAP.md`, `docs/ARCHITECTURE.md` and
    `docs/DESIGN.md` when their claims or contracts change.
+8. For release-facing changes, run the package verifier and update
+   `docs/testing/PR14-TESTING.md` or its successor.
 
 ## Pull request contract
 

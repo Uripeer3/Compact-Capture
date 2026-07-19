@@ -21,6 +21,7 @@ const DRAWING_GUTTER = 8;
 
 export default class CompactCaptureExtension extends Extension {
     enable() {
+        this._gettext = this.gettext.bind(this);
         this._document = new AnnotationDocument();
         this._toolbarState = new ToolbarState();
         this._toolbar = null;
@@ -53,6 +54,8 @@ export default class CompactCaptureExtension extends Extension {
                 this._refreshSession(session);
             },
             onShortcut: action => this._handleShortcut(action),
+            hasCaptureContent: () => this._document.hasAnnotations ||
+                this._document.isDrawing,
             prepareCapture: () => this._prepareCapture(),
             onClosed: () => {
                 this._capturePreparation.cancel();
@@ -76,6 +79,7 @@ export default class CompactCaptureExtension extends Extension {
         this._document = null;
         this._capturePreparation = null;
         this._toolbarState = null;
+        this._gettext = null;
         this._session = null;
     }
 
@@ -117,6 +121,7 @@ export default class CompactCaptureExtension extends Extension {
         const toolbar = new CompactToolbar({
             state: this._toolbarState,
             extensionPath: this.path,
+            gettext: this._gettext,
         });
         toolbar.connect('undo', () => {
             this._undo();
@@ -137,10 +142,13 @@ export default class CompactCaptureExtension extends Extension {
         toolbar.setInputEnabled(this._annotationInputEnabled);
         this._placeToolbar(toolbarMonitor);
 
+        const drawingGutter = session.captureType === CaptureType.SELECTION
+            ? DRAWING_GUTTER
+            : 0;
         for (const stageRect of drawingRects(
             session.selection,
             session.monitors,
-            DRAWING_GUTTER
+            drawingGutter
         )) {
             const overlay = new AnnotationOverlay({
                 document: this._document,
@@ -188,7 +196,7 @@ export default class CompactCaptureExtension extends Extension {
         if (this._selectionHint)
             return;
 
-        const hint = new SelectionHint();
+        const hint = new SelectionHint({gettext: this._gettext});
         if (!this._shellAdapter.mountSelectionHint(hint)) {
             hint.destroy();
             return;

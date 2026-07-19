@@ -16,8 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: sudo apt-get update && sudo apt-get install -y gjs gir1.2-gtk-3.0
+      - run: >-
+          sudo apt-get update && sudo apt-get install -y
+          gettext gjs gir1.2-gtk-3.0 gnome-shell librsvg2-common unzip
       - run: npm test
       - run: npm run check
       - run: npm run test:gjs
-      - run: bash -n build.sh
+      - run: bash -n build.sh tools/verify-package.sh
+      - run: ./build.sh
+      - run: bash tools/verify-package.sh

@@ -16,6 +16,7 @@ import {
     CacheUpdate,
     renderCacheUpdate,
 } from '../core/renderCachePlan.js';
+import {Tool} from '../core/toolDefinitions.js';
 
 export class AnnotationRenderCache {
     #committedRevision = -1;
@@ -68,7 +69,7 @@ export class AnnotationRenderCache {
                 scale
             );
         else if (update === CacheUpdate.CLEAR)
-            this.#redrawAll([]);
+            this.#replaceSurface([], scale);
         else if (update === CacheUpdate.FULL)
             this.#redrawAll(view.committed);
 
@@ -128,6 +129,17 @@ export class AnnotationRenderCache {
             ),
             this.#stageRect
         );
+
+        // Clipping through a translucent stroke can change edge-channel
+        // rounding even on a device-pixel boundary. Repaint the retained
+        // surface when a highlighter crosses the dirty region; opaque tools
+        // keep the smaller dirty redraw path.
+        if (strokes.some(stroke =>
+            stroke.tool === Tool.HIGHLIGHTER &&
+            boundsIntersect(annotationBounds(stroke), dirty))) {
+            this.#redrawAll(strokes);
+            return;
+        }
 
         this.#withContext(cr => {
             cr.rectangle(dirty.x, dirty.y, dirty.width, dirty.height);

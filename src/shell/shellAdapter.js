@@ -66,6 +66,7 @@ export class ScreenshotUiAdapter {
     #onSelectionChanged;
     #onSelectionStarted;
     #onShortcut;
+    #hasCaptureContent;
     #outputBridge;
     #screenshotUi;
     #screenshotUiPrototype;
@@ -88,6 +89,7 @@ export class ScreenshotUiAdapter {
         onSelectionStarted = null,
         onSelectionChanged = null,
         onShortcut = null,
+        hasCaptureContent = null,
         prepareCapture = null,
     } = {}) {
         this.#screenshotUi = Main.screenshotUI;
@@ -101,6 +103,7 @@ export class ScreenshotUiAdapter {
         this.#onSelectionStarted = onSelectionStarted;
         this.#onSelectionChanged = onSelectionChanged;
         this.#onShortcut = onShortcut;
+        this.#hasCaptureContent = hasCaptureContent;
         this.#prepareCapture = prepareCapture;
         this.#outputBridge = new AnnotatedOutputBridge({
             screenshotUi: this.#screenshotUi,
@@ -221,6 +224,7 @@ export class ScreenshotUiAdapter {
     }
 
     disable() {
+        this.#outputBridge.invalidate();
         try {
             this.#leaveEmptySelection({resetGeometry: true});
         } finally {
@@ -400,6 +404,7 @@ export class ScreenshotUiAdapter {
         if (!this.#active || this.#sessionOpen || !this.#screenshotUi.visible)
             return;
 
+        this.#outputBridge.invalidate();
         this.#sessionOpen = true;
         this.#rebindScreenSelectors();
         this.#transitionSelectionLifecycle({
@@ -417,6 +422,7 @@ export class ScreenshotUiAdapter {
         if (!this.#active || !this.#sessionOpen)
             return;
 
+        this.#outputBridge.invalidate();
         this.#transitionSelectionLifecycle({type: LifecycleEvent.CLOSED});
         this.#screenSelectorConnections.clear();
         this.#sessionOpen = false;
@@ -576,6 +582,20 @@ export class ScreenshotUiAdapter {
             !this.#screenshotUi._shotButton.checked ||
             this.#captureType() === CaptureType.WINDOW) {
             return originalMethod.apply(screenshotUi, args);
+        }
+
+        if (typeof this.#hasCaptureContent === 'function') {
+            try {
+                if (!this.#hasCaptureContent())
+                    return originalMethod.apply(screenshotUi, args);
+            } catch (error) {
+                console.error(
+                    'Compact Capture could not inspect its annotation document; ' +
+                    'using GNOME capture unchanged',
+                    error
+                );
+                return originalMethod.apply(screenshotUi, args);
+            }
         }
 
         return this.#captureGate.run(() => this.#prepareAndSaveScreenshot(

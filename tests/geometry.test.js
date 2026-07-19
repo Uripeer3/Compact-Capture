@@ -43,6 +43,13 @@ test('keeps a native resize gutter around each drawing surface', () => {
     );
 });
 
+test('covers every screen edge when no resize gutter is requested', () => {
+    assert.deepEqual(
+        drawingRects(monitors[0], monitors, 0),
+        [{monitorIndex: 0, x: 0, y: 0, width: 1920, height: 1080}]
+    );
+});
+
 test('places the toolbar above, below, then at the monitor top', () => {
     const toolbar = {width: 500, height: 48};
     assert.deepEqual(

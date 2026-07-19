@@ -37,6 +37,22 @@ test('includes both arrowhead arms in dirty bounds', () => {
     assert.ok(bounds.x + bounds.width >= 23);
 });
 
+test('includes the axis extent of diagonal square highlighter caps', () => {
+    const width = 16;
+    const bounds = annotationBounds({
+        tool: Tool.HIGHLIGHTER,
+        color: '#ffffff',
+        width,
+        points: [{x: 20, y: 20}, {x: 80, y: 80}],
+    });
+    const requiredMargin = width / Math.SQRT2;
+
+    assert.ok(bounds.x <= 20 - requiredMargin);
+    assert.ok(bounds.y <= 20 - requiredMargin);
+    assert.ok(bounds.x + bounds.width >= 80 + requiredMargin);
+    assert.ok(bounds.y + bounds.height >= 80 + requiredMargin);
+});
+
 test('detects only bounds with a non-empty intersection', () => {
     const first = {x: 0, y: 0, width: 10, height: 10};
     assert.equal(boundsIntersect(first, {

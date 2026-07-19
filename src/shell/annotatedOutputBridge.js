@@ -33,7 +33,9 @@ function snapshotCursor(screenshotUi) {
 }
 
 export class AnnotatedOutputBridge {
+    #activeRestore = null;
     #createOutput;
+    #generation = 0;
     #onError;
     #screenshotUi;
 
@@ -41,6 +43,14 @@ export class AnnotatedOutputBridge {
         this.#screenshotUi = screenshotUi;
         this.#createOutput = createOutput;
         this.#onError = onError;
+    }
+
+    invalidate() {
+        this.#generation++;
+        const active = this.#activeRestore;
+        this.#activeRestore = null;
+        if (active && this.#screenshotUi?._cursor === active.snapshot.actor)
+            this.#restoreState(active.snapshot);
     }
 
     async save({
@@ -54,7 +64,11 @@ export class AnnotatedOutputBridge {
         if (screenshotUi !== this.#screenshotUi)
             return originalMethod.apply(screenshotUi, args);
 
-        let cursorSnapshot = null;
+        let cursorSnapshot;
+        const ownership = Object.freeze({
+            generation: this.#generation,
+            actor: this.#screenshotUi._cursor,
+        });
         try {
             cursorSnapshot = snapshotCursor(this.#screenshotUi);
             const output = await this.#createOutput({
@@ -63,48 +77,103 @@ export class AnnotatedOutputBridge {
                 outputScale,
                 cursor: cursorSnapshot.cursor,
             });
-            this.#install(output, cursorSnapshot.actor);
+            if (!this.#owns(ownership))
+                return originalMethod.apply(screenshotUi, args);
+
+            const active = Object.freeze({
+                ownership,
+                snapshot: cursorSnapshot,
+            });
+            this.#activeRestore = active;
+            try {
+                this.#install(output, ownership);
+            } catch (error) {
+                this.#restoreOwned(active);
+                throw error;
+            }
         } catch (error) {
             this.#onError(
                 'Compact Capture could not prepare annotated output; ' +
                 'using GNOME capture unchanged',
                 error
             );
-            this.#restore(cursorSnapshot);
             return originalMethod.apply(screenshotUi, args);
         }
 
+        const active = this.#activeRestore;
         try {
             return await originalMethod.apply(screenshotUi, args);
         } finally {
-            this.#restore(cursorSnapshot);
+            this.#restoreOwned(active);
         }
     }
 
-    #install(output, cursor) {
-        cursor.set_content(output.content);
-        cursor.set_position(output.x, output.y);
-        cursor.visible = true;
+    #install(output, ownership) {
+        this.#requireOwnership(ownership);
+        ownership.actor.set_content(output.content);
+        this.#requireOwnership(ownership);
+        ownership.actor.set_position(output.x, output.y);
+        this.#requireOwnership(ownership);
+        ownership.actor.visible = true;
         // The texture is an output-only bridge; do not flash it inside the
         // still-open screenshot UI while GNOME encodes the image.
-        cursor.opacity = 0;
+        this.#requireOwnership(ownership);
+        ownership.actor.opacity = 0;
+        this.#requireOwnership(ownership);
         this.#screenshotUi._cursorScale = output.scale;
     }
 
-    #restore(snapshot) {
-        if (!snapshot)
-            return;
+    #owns(ownership) {
+        return ownership.generation === this.#generation &&
+            this.#screenshotUi?._cursor === ownership.actor;
+    }
 
+    #requireOwnership(ownership) {
+        if (!this.#owns(ownership))
+            throw new Error('Annotation output session was invalidated');
+    }
+
+    #restoreOwned(active) {
+        if (!active || this.#activeRestore !== active)
+            return false;
+
+        this.#activeRestore = null;
+        if (!this.#owns(active.ownership))
+            return false;
+
+        this.#restoreState(active.snapshot);
+        return true;
+    }
+
+    #restoreState(snapshot) {
         const {actor, state} = snapshot;
-        try {
-            actor.set_content(state.content);
+        this.#tryRestore(
+            actor,
+            'content',
+            () => actor.set_content(state.content)
+        );
+        this.#tryRestore(actor, 'position', () => {
             actor.set_position(state.x, state.y);
+        });
+        this.#tryRestore(actor, 'visibility', () => {
             actor.visible = state.visible;
+        });
+        this.#tryRestore(actor, 'opacity', () => {
             actor.opacity = state.opacity;
+        });
+        this.#tryRestore(actor, 'scale', () => {
             this.#screenshotUi._cursorScale = state.scale;
+        });
+    }
+
+    #tryRestore(actor, property, callback) {
+        if (this.#screenshotUi?._cursor !== actor)
+            return;
+        try {
+            callback();
         } catch (error) {
             this.#onError(
-                'Compact Capture could not restore GNOME cursor state',
+                `Compact Capture could not restore GNOME cursor ${property}`,
                 error
             );
         }
