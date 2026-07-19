@@ -357,6 +357,7 @@ historical evidence.
 | [ ] | P14-O1 | Verify preview, clipboard and PNG parity for all four tools with pointer off/on. |  |
 | [ ] | P14-O2 | Verify SVG output retains translucent overlap and clean alpha edges. |  |
 | [ ] | P14-P1 | Complete the maximum-point and ten-capture 4K/200% performance matrix. |  |
+| [ ] | P14-L0 | A cold enable after login imports every module without a gettext or extension-lookup error. |  |
 | [ ] | P14-L1 | Verify selection-first, accessibility, tooltip and repeated lifecycle behavior. |  |
 | [ ] | P14-R1 | Audit metadata, runtime imports, attribution and actual ZIP contents against current GNOME review rules. |  |
 | [ ] | P14-X1 | Full journal review contains no unexplained Compact Capture, GJS, GdkPixbuf or Cogl error. |  |

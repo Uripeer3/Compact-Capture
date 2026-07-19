@@ -60,6 +60,7 @@ the pointer off and once with it on.
 
 | ID | Required result | Result / evidence |
 | --- | --- | --- |
+| P14-L0 | After a fresh login, enabling the extension succeeds without a module-load or gettext error |  |
 | P14-L1 | Selection-first hint, native shade and toolbar timing match the Version 0.1 design |  |
 | P14-L2 | Hover/focus hints clear after pointer exit, focus change, capture, close and disable |  |
 | P14-L3 | Keyboard focus, checked and insensitive states remain visible at 100% and 200% |  |

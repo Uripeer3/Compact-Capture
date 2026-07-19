@@ -46,3 +46,34 @@ test('translation template contains every current user-facing message', async ()
         );
     }
 });
+
+test('UI translation waits for the enabled extension instance', async () => {
+    const toolbar = await readFile(
+        projectFile('src/ui/compactToolbar.js'),
+        'utf8'
+    );
+    const hint = await readFile(
+        projectFile('src/ui/selectionHint.js'),
+        'utf8'
+    );
+    const extension = await readFile(
+        projectFile('src/extension.js'),
+        'utf8'
+    );
+
+    for (const source of [toolbar, hint]) {
+        assert.doesNotMatch(source, /gettext\s+as/);
+        assert.doesNotMatch(
+            source,
+            /resource:\/\/\/org\/gnome\/shell\/extensions\/extension\.js/
+        );
+    }
+    assert.match(
+        extension,
+        /this\._gettext = this\.gettext\.bind\(this\)/
+    );
+    assert.equal(
+        extension.match(/gettext: this\._gettext/g)?.length,
+        2
+    );
+});

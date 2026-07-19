@@ -21,6 +21,7 @@ const DRAWING_GUTTER = 8;
 
 export default class CompactCaptureExtension extends Extension {
     enable() {
+        this._gettext = this.gettext.bind(this);
         this._document = new AnnotationDocument();
         this._toolbarState = new ToolbarState();
         this._toolbar = null;
@@ -76,6 +77,7 @@ export default class CompactCaptureExtension extends Extension {
         this._document = null;
         this._capturePreparation = null;
         this._toolbarState = null;
+        this._gettext = null;
         this._session = null;
     }
 
@@ -117,6 +119,7 @@ export default class CompactCaptureExtension extends Extension {
         const toolbar = new CompactToolbar({
             state: this._toolbarState,
             extensionPath: this.path,
+            gettext: this._gettext,
         });
         toolbar.connect('undo', () => {
             this._undo();
@@ -188,7 +191,7 @@ export default class CompactCaptureExtension extends Extension {
         if (this._selectionHint)
             return;
 
-        const hint = new SelectionHint();
+        const hint = new SelectionHint({gettext: this._gettext});
         if (!this._shellAdapter.mountSelectionHint(hint)) {
             hint.destroy();
             return;
